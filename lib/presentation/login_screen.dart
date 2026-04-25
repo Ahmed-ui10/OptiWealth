@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'SignUp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -125,7 +126,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(isArabic ? 'ليس لديك حساب؟' : "Don't have an account?"),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                        );
+                      },
                       child: Text(isArabic ? 'إنشاء حساب جديد' : 'Sign Up'),
                     ),
                   ],

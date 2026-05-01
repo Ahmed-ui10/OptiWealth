@@ -108,7 +108,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // **تعديل أسماء التصنيفات للعربية**
     await db.rawInsert(
         "INSERT INTO categories (name, type) VALUES ('طعام', 'expense'), ('مواصلات', 'expense'), ('فواتير', 'expense'), ('ترفيه', 'expense'), ('مرتب', 'income'), ('هدية', 'income')");
   }

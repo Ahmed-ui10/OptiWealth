@@ -1,5 +1,5 @@
-class User
-{
+class User {
+  int id;
   String fullName;
   String email;
   String passwordHash;
@@ -8,6 +8,7 @@ class User
   bool notificationsEnabled;
 
   User({
+    required this.id,
     required this.fullName,
     required this.email,
     required this.passwordHash,
@@ -16,42 +17,23 @@ class User
     this.notificationsEnabled = true,
   });
 
-  factory User.fromJson(Map<String, dynamic> json)
-  {
-    return User(
-      fullName: json['fullName'],
-      email: json['email'],
-      passwordHash: json['passwordHash'],
-      currency: json['currency'],
-      language: json['language'],
-      notificationsEnabled: json['notificationsEnabled'] ?? true,
-    );
-  }
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'fullName': fullName,
+        'email': email,
+        'passwordHash': passwordHash,
+        'currency': currency,
+        'language': language,
+        'notificationsEnabled': notificationsEnabled ? 1 : 0,
+      };
 
-  Map<String, dynamic> toJson()
-  {
-    return
-    {
-      'fullName': fullName,
-      'email': email,
-      'passwordHash': passwordHash,
-      'currency': currency,
-      'language': language,
-      'notificationsEnabled': notificationsEnabled,
-    };
-  }
-
-  void register() {}
-
-  bool login(String inputEmail, String inputPasswordHash)
-  {
-    return email == inputEmail && passwordHash == inputPasswordHash;
-  }
-
-  void updateProfile({String? newName, String? newLanguage, String? newCurrency})
-  {
-    if (newName != null) fullName = newName;
-    if (newLanguage != null) language = newLanguage;
-    if (newCurrency != null) currency = newCurrency;
-  }
+  factory User.fromMap(Map<String, dynamic> map) => User(
+        id: map['id'],
+        fullName: map['fullName'],
+        email: map['email'],
+        passwordHash: map['passwordHash'],
+        currency: map['currency'],
+        language: map['language'],
+        notificationsEnabled: map['notificationsEnabled'] == 1,
+      );
 }

@@ -1,5 +1,6 @@
-class FinancialGoal
-{
+class FinancialGoal {
+  int id;
+  int userId;
   String goalName;
   double targetAmount;
   double currentAmount;
@@ -7,49 +8,39 @@ class FinancialGoal
   String status;
 
   FinancialGoal({
+    required this.id,
+    required this.userId,
     required this.goalName,
     required this.targetAmount,
-    this.currentAmount = 0.0,
+    required this.currentAmount,
     required this.deadline,
     this.status = 'In Progress',
   });
 
-  factory FinancialGoal.fromJson(Map<String, dynamic> json)
-  {
-    return FinancialGoal(
-      goalName: json['goalName'],
-      targetAmount: (json['targetAmount'] as num).toDouble(),
-      currentAmount: (json['currentAmount'] as num).toDouble(),
-      deadline: DateTime.parse(json['deadline']),
-      status: json['status'],
-    );
+  double get progress => currentAmount / targetAmount;
+
+  void updateProgress(double amount) {
+    currentAmount += amount;
+    if (currentAmount >= targetAmount) status = 'Completed';
   }
 
-  Map<String, dynamic> toJson()
-  {
-    return
-    {
-      'goalName': goalName,
-      'targetAmount': targetAmount,
-      'currentAmount': currentAmount,
-      'deadline': deadline.toIso8601String(),
-      'status': status,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'userId': userId,
+        'goalName': goalName,
+        'targetAmount': targetAmount,
+        'currentAmount': currentAmount,
+        'deadline': deadline.toIso8601String(),
+        'status': status,
+      };
 
-  void addGoal() {}
-
-  void updateProgress(double amountAdded)
-  {
-    currentAmount += amountAdded;
-    if (isCompleted())
-    {
-      status = 'Completed';
-    }
-  }
-
-  bool isCompleted()
-  {
-    return currentAmount >= targetAmount;
-  }
+  factory FinancialGoal.fromMap(Map<String, dynamic> map) => FinancialGoal(
+        id: map['id'],
+        userId: map['userId'],
+        goalName: map['goalName'],
+        targetAmount: map['targetAmount'],
+        currentAmount: map['currentAmount'],
+        deadline: DateTime.parse(map['deadline']),
+        status: map['status'],
+      );
 }

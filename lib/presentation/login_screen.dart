@@ -1,146 +1,100 @@
 import 'package:flutter/material.dart';
-import 'SignUp_screen.dart';
+import 'package:provider/provider.dart';
+import '../../services/auth_service.dart';
+import '../../locale_provider.dart';
+import 'signup_screen.dart';
+import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool isArabic = true;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _auth = AuthService();
+  bool _loading = false;
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+    final user = await _auth.login(
+      _emailController.text,
+      _passwordController.text,
+    );
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DashboardScreen(userId: user.id)),
+      );
+    } else {
+      final isArabic =
+          Provider.of<LocaleProvider>(
+            context,
+            listen: false,
+          ).locale.languageCode ==
+          'ar';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isArabic ? 'بيانات غير صحيحة' : 'Invalid credentials'),
+        ),
+      );
+    }
+    setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isArabic =
+        Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'OptiWealth',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      appBar: AppBar(title: Text(isArabic ? 'تسجيل الدخول' : 'Login')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: isArabic ? 'البريد الإلكتروني' : 'Email',
+                ),
+                validator: (v) => v!.contains('@')
+                    ? null
+                    : (isArabic ? 'بريد غير صالح' : 'Invalid email'),
+              ),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: isArabic ? 'كلمة المرور' : 'Password',
+                ),
+                obscureText: true,
+                validator: (v) => v!.length >= 6
+                    ? null
+                    : (isArabic ? 'قصيرة جداً' : 'Too short'),
+              ),
+              SizedBox(height: 20),
+              _loading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _login,
+                      child: Text(isArabic ? 'دخول' : 'Login'),
+                    ),
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SignupScreen()),
+                ),
+                child: Text(isArabic ? 'إنشاء حساب' : 'Create Account'),
+              ),
+            ],
+          ),
         ),
-
-        centerTitle: true,
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                isArabic = !isArabic;
-              });
-            },
-            child: Text(
-              isArabic ? 'EN' : 'AR',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-          ),
-        ],
       ),
-      body:  Container(
-        height: double.infinity,
-        color: const Color.fromARGB(255, 201, 255, 209),
-        child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-          
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-          
-              children: [
-          
-                SizedBox(height: 40),
-          
-                Icon(
-                  Icons.account_balance,
-                  size: 80,
-                  color: Colors.green,
-                ),
-          
-                SizedBox(height: 20),
-          
-                Text(
-                  isArabic ? '!مرحباً بعودتك' : 'Welcome Back!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-          
-                SizedBox(height: 40),
-          
-                TextField(
-                  keyboardType: TextInputType.emailAddress,
-                  textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                  decoration: InputDecoration(
-                    labelText: isArabic ? 'البريد الإلكتروني' : 'Email Address',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-          
-                SizedBox(height: 20),
-          
-                TextField(
-                  obscureText: true,
-                  textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                  decoration: InputDecoration(
-                    labelText: isArabic ? 'كلمة المرور' : 'Password',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-          
-                Align(
-                  alignment: isArabic ? Alignment.centerRight : Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: Text(isArabic ? 'نسيت كلمة المرور؟' : 'Forgot Password?'),
-                  ),
-                ),
-          
-                SizedBox(height: 10),
-          
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-          
-                  child: Text(
-                    isArabic ? 'تسجيل الدخول' : 'Login',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-                
-                SizedBox(height: 20),
-          
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(isArabic ? 'ليس لديك حساب؟' : "Don't have an account?"),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                        );
-                      },
-                      child: Text(isArabic ? 'إنشاء حساب جديد' : 'Sign Up'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-      ),
-      
     );
   }
 }

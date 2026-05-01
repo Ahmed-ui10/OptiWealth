@@ -1,8 +1,7 @@
-class Category
-{
+class Category {
   int categoryId;
   String name;
-  String type;
+  String type; // 'income' or 'expense'
 
   Category({
     required this.categoryId,
@@ -10,29 +9,15 @@ class Category
     required this.type,
   });
 
-  factory Category.fromJson(Map<String, dynamic> json)
-  {
-    return Category(
-      categoryId: json['categoryId'],
-      name: json['name'],
-      type: json['type'],
-    );
-  }
+  Map<String, dynamic> toMap() => {
+        'categoryId': categoryId,
+        'name': name,
+        'type': type,
+      };
 
-  Map<String, dynamic> toJson()
-  {
-    return
-    {
-      'categoryId': categoryId,
-      'name': name,
-      'type': type,
-    };
-  }
-
-  void createCategory() {}
-
-  void updateCategory(String newName)
-  {
-    name = newName;
-  }
+  factory Category.fromMap(Map<String, dynamic> map) => Category(
+        categoryId: map['categoryId'],
+        name: map['name'],
+        type: map['type'],
+      );
 }

@@ -1,6 +1,6 @@
-class Budget
-{
+class Budget {
   int budgetId;
+  int userId;
   String category;
   double budgetAmount;
   DateTime startDate;
@@ -11,6 +11,7 @@ class Budget
 
   Budget({
     required this.budgetId,
+    required this.userId,
     required this.category,
     required this.budgetAmount,
     required this.startDate,
@@ -20,88 +21,38 @@ class Budget
     this.budgetStatus = 'Active',
   });
 
-  factory Budget.fromJson(Map<String, dynamic> json)
-  {
-    return Budget(
-      budgetId: json['budgetId'],
-      category: json['category'],
-      budgetAmount: (json['budgetAmount'] as num).toDouble(),
-      startDate: DateTime.parse(json['startDate']),
-      endDate: DateTime.parse(json['endDate']),
-      alertThreshold: json['alertThreshold'],
-      spentAmount: (json['spentAmount'] as num).toDouble(),
-      budgetStatus: json['budgetStatus'],
-    );
-  }
+  double get spentPercentage => spentAmount / budgetAmount;
 
- Map<String, dynamic> toJson()
-  {
-    return
-    {
-      'budgetId': budgetId,
-      'category': category,
-      'budgetAmount': budgetAmount,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'alertThreshold': alertThreshold,
-      'spentAmount': spentAmount,
-      'budgetStatus': budgetStatus,
-    };
-  }
-
-  static Budget createBudget({
-    required int id,
-    required String category,
-    required double amount,
-    required DateTime start,
-    required DateTime end,
-    required int alertThreshold,
-  })
-  {
-    return Budget(
-      budgetId: id,
-      category: category,
-      budgetAmount: amount,
-      startDate: start,
-      endDate: end,
-      alertThreshold: alertThreshold,
-    );
-  }
-
-  void editBudget({
-    double? newAmount,
-    String? newCategory,
-    DateTime? newStartDate,
-    DateTime? newEndDate,
-    int? newAlertThreshold,
-  })
-  {
-    if (newAmount != null) budgetAmount = newAmount;
-    if (newCategory != null) category = newCategory;
-    if (newStartDate != null) startDate = newStartDate;
-    if (newEndDate != null) endDate = newEndDate;
-    if (newAlertThreshold != null) alertThreshold = newAlertThreshold;
-  }
-
-  bool checkLimit()
-  {
-    double thresholdAmount = budgetAmount * (alertThreshold / 100);
-    return spentAmount >= thresholdAmount;
-  }
-
-  bool isExceeded()
-  {
-    if (spentAmount > budgetAmount)
-    {
-      budgetStatus = 'Exceeded';
-      return true;
-    }
-    return false;
-  }
-
-  void addExpense(double amount)
-  {
+  void addExpense(double amount) {
     spentAmount += amount;
-    isExceeded();
+    if (spentAmount > budgetAmount) budgetStatus = 'Exceeded';
+    else if (spentAmount >= budgetAmount * (alertThreshold / 100)) budgetStatus = 'Near Limit';
+    else budgetStatus = 'On Track';
   }
+
+  bool isExceeded() => spentAmount > budgetAmount;
+
+  Map<String, dynamic> toMap() => {
+        'budgetId': budgetId,
+        'userId': userId,
+        'category': category,
+        'budgetAmount': budgetAmount,
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+        'alertThreshold': alertThreshold,
+        'spentAmount': spentAmount,
+        'budgetStatus': budgetStatus,
+      };
+
+  factory Budget.fromMap(Map<String, dynamic> map) => Budget(
+        budgetId: map['budgetId'],
+        userId: map['userId'],
+        category: map['category'],
+        budgetAmount: map['budgetAmount'],
+        startDate: DateTime.parse(map['startDate']),
+        endDate: DateTime.parse(map['endDate']),
+        alertThreshold: map['alertThreshold'],
+        spentAmount: map['spentAmount'],
+        budgetStatus: map['budgetStatus'],
+      );
 }

@@ -1,167 +1,75 @@
 import 'package:flutter/material.dart';
-class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+import 'package:provider/provider.dart';
+import '../../services/auth_service.dart';
+import '../../locale_provider.dart';
+import 'login_screen.dart';
 
+class SignupScreen extends StatefulWidget {
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  _SignupScreenState createState() => _SignupScreenState();
 }
-class _SignUpScreenState extends State<SignUpScreen> {
-  bool isArabic = true;
+
+class _SignupScreenState extends State<SignupScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  final AuthService _auth = AuthService();
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'OptiWealth',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                isArabic = !isArabic;
-              });
-            },
-            child: Text(
-              isArabic ? 'EN' : 'AR',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-          ),
-        ],
-      ),
-      body: Container(
-        height: double.infinity,
-        color:  Color.fromARGB(255, 201, 255, 209),
-
-        child: SingleChildScrollView(
-          padding:  EdgeInsets.all(20.0),
+      appBar: AppBar(title: Text(isArabic ? 'إنشاء حساب' : 'Sign Up')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-
             children: [
-
-               SizedBox(height: 30),
-
-               Icon(
-                Icons.person_add,
-                size: 80,
-                color: Colors.green,
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: isArabic ? 'الاسم الكامل' : 'Full Name'),
+                validator: (v) => v!.isNotEmpty ? null : (isArabic ? 'مطلوب' : 'Required'),
               ),
-
-               SizedBox(height: 20),
-
-              Text(
-                isArabic ? 'إنشاء حساب جديد' : 'Create New Account',
-                textAlign: TextAlign.center,
-                style:  TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: isArabic ? 'البريد الإلكتروني' : 'Email'),
+                validator: (v) => v!.contains('@') ? null : (isArabic ? 'بريد غير صالح' : 'Invalid email'),
               ),
-
-               SizedBox(height: 30),
-
-              TextField(
-                textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                decoration: InputDecoration(
-                  labelText: isArabic ? 'الاسم بالكامل' : 'Full Name',
-                  prefixIcon:  Icon(Icons.person),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-
-               SizedBox(height: 20),
-
-              TextField(
-                keyboardType: TextInputType.emailAddress,
-                textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                decoration: InputDecoration(
-                  labelText: isArabic ? 'البريد الإلكتروني' : 'Email Address',
-                  prefixIcon:  Icon(Icons.email),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-
-               SizedBox(height: 20),
-
-              TextField(
-                keyboardType: TextInputType.phone,
-                textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                decoration: InputDecoration(
-                  labelText: isArabic ? 'رقم الهاتف' : 'Phone Number',
-                  prefixIcon:  Icon(Icons.phone),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-
-               SizedBox(height: 20),
-
-              TextField(
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: isArabic ? 'كلمة المرور' : 'Password'),
                 obscureText: true,
-                textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                decoration: InputDecoration(
-                  labelText: isArabic ? 'كلمة المرور' : 'Password',
-                  prefixIcon:  Icon(Icons.lock),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                validator: (v) => v!.length >= 6 ? null : (isArabic ? 'أقل من 6 حروف' : 'Min 6 chars'),
               ),
-
-               SizedBox(height: 20),
-
-              TextField(
+              TextFormField(
+                controller: _confirmController,
+                decoration: InputDecoration(labelText: isArabic ? 'تأكيد كلمة المرور' : 'Confirm'),
                 obscureText: true,
-                textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                decoration: InputDecoration(
-                  labelText: isArabic ? 'تأكيد كلمة المرور' : 'Confirm Password',
-                  prefixIcon:  Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
               ),
-
-               SizedBox(height: 30),
-
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-
-                child: Text(
-                  isArabic ? 'إنشاء الحساب' : 'Sign Up',
-                  style:  TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-
-               SizedBox(height: 20),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-
-                children: [
-                  Text(isArabic ? 'لديك حساب بالفعل؟' : "Already have an account?"),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: Text(isArabic ? 'تسجيل الدخول' : 'Login'),
-                  ),
-                ],
-              ),
+              SizedBox(height: 20),
+              _loading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: () async {
+                        if (_passwordController.text != _confirmController.text) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isArabic ? 'كلمة المرور غير متطابقة' : 'Passwords mismatch')));
+                          return;
+                        }
+                        setState(() => _loading = true);
+                        final user = await _auth.register(_nameController.text, _emailController.text, _passwordController.text);
+                        if (user != null) {
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isArabic ? 'البريد موجود مسبقاً' : 'Email already exists')));
+                        }
+                        setState(() => _loading = false);
+                      },
+                      child: Text(isArabic ? 'تسجيل' : 'Register'),
+                    ),
             ],
           ),
         ),

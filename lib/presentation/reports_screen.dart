@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../services/report_service.dart';
 import '../../locale_provider.dart';
+import '../../models/financial_report_model.dart';
 
 class ReportsScreen extends StatefulWidget {
   final int userId;
@@ -14,11 +15,12 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   final ReportService _service = ReportService();
-  Map<String, dynamic>? _report;
+  FinancialReport? _report;
   bool _loading = true;
 
   @override
-  void initState() {
+  void initState()
+  {
     super.initState();
     _load();
   }
@@ -28,97 +30,104 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, 1);
     final end = DateTime(now.year, now.month + 1, 0);
-    final report = await _service.generateReport(widget.userId, start, end);
-    setState(() {
-      _report = {
-        'categoryTotals': report.categoryTotals,
-        'incomeVsExpense': report.incomeVsExpenseData,
-      };
-      _loading = false;
-    });
+    
+    try {
+      final report = await _service.generateReport(widget.userId, start, end);
+      setState(() {
+        _report = report;
+        _loading = false;
+      });
+    }
+    catch (e)
+    {
+      setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+    
     return Scaffold(
-      appBar: AppBar(title: Text(isArabic ? 'التقارير' : 'Reports')),
+      appBar: AppBar(title: Text(isArabic ? 'التقارير المالية' : 'Financial Reports')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text(isArabic ? 'المصروفات حسب التصنيف' : 'Expenses by Category', style: const TextStyle(fontSize: 20)),
-                  const SizedBox(height: 20),
-                  if ((_report?['categoryTotals'] ?? {}).isEmpty)
-                    Center(child: Text(isArabic ? 'لا توجد بيانات' : 'No data available'))
-                  else
-                    SizedBox(
-                      height: 200,
-                      child: PieChart(
-                        PieChartData(
-                          sections: (_report!['categoryTotals'] as Map<String, double>).entries.map<PieChartSectionData>((e) {
-                            return PieChartSectionData(
-                              value: e.value,
-                              title: e.key,
-                              radius: 60,
-                              titleStyle: const TextStyle(fontSize: 12),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  Text(isArabic ? 'الدخل مقابل المصروفات' : 'Income vs Expense', style: const TextStyle(fontSize: 20)),
-                  const SizedBox(height: 20),
-                  if ((_report?['incomeVsExpense'] ?? {}).isEmpty)
-                    Center(child: Text(isArabic ? 'لا توجد بيانات' : 'No data available'))
-                  else
-                    SizedBox(
-                      height: 200,
-                      child: BarChart(
-                        BarChartData(
-                          barGroups: [
-                            BarChartGroupData(
-                              x: 0,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: (_report!['incomeVsExpense']['income'] as double),
-                                  color: Colors.green,
-                                  width: 40,
-                                ),
-                              ],
-                            ),
-                            BarChartGroupData(
-                              x: 1,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: (_report!['incomeVsExpense']['expense'] as double),
-                                  color: Colors.red,
-                                  width: 40,
-                                ),
-                              ],
-                            ),
-                          ],
-                          titlesData: FlTitlesData(
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, _) {
-                                  if (value == 0) return Text(isArabic ? 'دخل' : 'Income');
-                                  if (value == 1) return Text(isArabic ? 'مصروف' : 'Expense');
-                                  return const Text('');
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+          : _report == null || _report!.categoryTotals.isEmpty
+              ? Center(child: Text(isArabic ? 'لا توجد بيانات لهذه الفترة' : 'No data for this period'))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildPieChartSection(isArabic),
+                      const SizedBox(height: 40),
+                      _buildBarChartSection(isArabic),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildPieChartSection(bool isArabic)
+  {
+    return Column(
+      children: [
+        Text(isArabic ? 'المصروفات حسب التصنيف' : 'Expenses by Category', 
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 250,
+          child: PieChart(
+            PieChartData(
+              sections: _report!.categoryTotals.entries.map((e) {
+                return PieChartSectionData(
+                  value: e.value,
+                  title: e.key,
+                  radius: 70,
+                  titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBarChartSection(bool isArabic)
+  {
+    final income = _report!.incomeVsExpenseData['income'] ?? 0.0;
+    final expense = _report!.incomeVsExpenseData['expense'] ?? 0.0;
+
+    return Column(
+      children: [
+        Text(isArabic ? 'الدخل مقابل المصروفات' : 'Income vs Expense', 
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 250,
+          child: BarChart(
+            BarChartData(
+              barGroups: [
+                BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: income, color: Colors.green, width: 25)]),
+                BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: expense, color: Colors.red, width: 25)]),
+              ],
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, _)
+                    {
+                      if (value == 0) return Text(isArabic ? 'دخل' : 'Income');
+                      if (value == 1) return Text(isArabic ? 'مصروف' : 'Expense');
+                      return const Text('');
+                    },
+                  ),
+                ),
               ),
             ),
+          ),
+        ),
+      ],
     );
   }
 }

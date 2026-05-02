@@ -1,12 +1,13 @@
 class Transaction {
   int id;
   int userId;
-  bool transactionType; // true = income, false = expense
+  bool transactionType;
   double amount;
   DateTime dateTime;
   String description;
   String paymentMethod;
-  String categoryId;
+  int categoryId;
+  int accountId;
 
   Transaction({
     required this.id,
@@ -39,6 +40,7 @@ class Transaction {
         description: map['description'],
         paymentMethod: map['paymentMethod'],
         categoryId: map['categoryId'],
+        accountId: map['accountId']
       );
 
   bool validate() => amount > 0 && description.isNotEmpty;

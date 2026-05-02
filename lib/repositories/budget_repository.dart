@@ -13,11 +13,14 @@ class BudgetRepository {
     final db = await dbHelper.db;
     String where = 'userId = ?';
     List<dynamic> args = [userId];
-    if (activeOnly) {
+    
+    if (activeOnly)
+    {
       final now = DateTime.now().toIso8601String();
       where += ' AND startDate <= ? AND endDate >= ?';
       args.addAll([now, now]);
     }
+    
     final List<Map<String, dynamic>> maps = await db.query(
       'budgets',
       where: where,

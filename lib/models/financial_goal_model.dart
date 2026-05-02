@@ -17,9 +17,10 @@ class FinancialGoal {
     this.status = 'In Progress',
   });
 
-  double get progress => currentAmount / targetAmount;
+  double get progress => targetAmount > 0 ? currentAmount / targetAmount : 0.0;
 
-  void updateProgress(double amount) {
+  void updateProgress(double amount)
+  {
     currentAmount += amount;
     if (currentAmount >= targetAmount) status = 'Completed';
   }
@@ -38,8 +39,8 @@ class FinancialGoal {
         id: map['id'],
         userId: map['userId'],
         goalName: map['goalName'],
-        targetAmount: map['targetAmount'],
-        currentAmount: map['currentAmount'],
+        targetAmount: (map['targetAmount'] as num).toDouble(),
+        currentAmount: (map['currentAmount'] as num).toDouble(),
         deadline: DateTime.parse(map['deadline']),
         status: map['status'],
       );

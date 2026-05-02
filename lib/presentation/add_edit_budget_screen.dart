@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/budget_service.dart';
+import '../../repositories/category_repository.dart';
 import '../../locale_provider.dart';
 import '../../models/budget_model.dart';
+import '../../models/category_model.dart';
 
 class AddEditBudgetScreen extends StatefulWidget {
   final int userId;
@@ -15,23 +17,37 @@ class AddEditBudgetScreen extends StatefulWidget {
 class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final _categoryController = TextEditingController();
+  int? _categoryId;
+  List<Category> _categories = [];
   int _threshold = 80;
   bool _loading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final cats = await CategoryRepository().getAllCategories();
+    setState(() => _categories = cats);
+  }
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
     final now = DateTime.now();
+    
     final budget = Budget(
       budgetId: 0,
       userId: widget.userId,
-      category: _categoryController.text,
-      budgetAmount: double.parse(_amountController.text),
+      categoryId: _categoryId!,
+      budgetAmount: double.tryParse(_amountController.text) ?? 0.0,
       startDate: DateTime(now.year, now.month, 1),
       endDate: DateTime(now.year, now.month + 1, 0),
       alertThreshold: _threshold,
     );
+    
     await BudgetService().createBudget(budget);
     Navigator.pop(context);
   }
@@ -47,10 +63,12 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: _categoryController,
+              DropdownButtonFormField<int>(
+                value: _categoryId,
+                items: _categories.map((c) => DropdownMenuItem(value: c.categoryId, child: Text(c.name))).toList(),
+                onChanged: (val) => setState(() => _categoryId = val),
                 decoration: InputDecoration(labelText: isArabic ? 'التصنيف' : 'Category'),
-                validator: (v) => v!.isNotEmpty ? null : (isArabic ? 'مطلوب' : 'Required'),
+                validator: (v) => v != null ? null : (isArabic ? 'مطلوب' : 'Required'),
               ),
               TextFormField(
                 controller: _amountController,

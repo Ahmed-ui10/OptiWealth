@@ -12,12 +12,17 @@ class ReportService {
     final Map<String, double> categoryTotals = {};
     double totalIncome = 0, totalExpense = 0;
 
-    for (var t in transactions) {
-      if (t.transactionType) totalIncome += t.amount;
-      else {
+    for (var t in transactions)
+    {
+      if (t.transactionType)
+      {
+        totalIncome += t.amount;
+      }
+      else
+      {
         totalExpense += t.amount;
-        final catName = categories.firstWhere((c) => c.categoryId.toString() == t.categoryId).name;
-        categoryTotals[catName] = (categoryTotals[catName] ?? 0) + t.amount;
+        final cat = categories.firstWhere((c) => c.categoryId == t.categoryId);
+        categoryTotals[cat.name] = (categoryTotals[cat.name] ?? 0) + t.amount;
       }
     }
     return FinancialReport(

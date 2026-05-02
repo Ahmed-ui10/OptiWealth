@@ -1,13 +1,12 @@
 class Transaction {
   int id;
   int userId;
-  bool transactionType;
+  bool transactionType; 
   double amount;
   DateTime dateTime;
   String description;
   String paymentMethod;
   int categoryId;
-  int accountId;
 
   Transaction({
     required this.id,
@@ -35,12 +34,11 @@ class Transaction {
         id: map['id'],
         userId: map['userId'],
         transactionType: map['transactionType'] == 1,
-        amount: map['amount'],
+        amount: (map['amount'] as num).toDouble(),
         dateTime: DateTime.parse(map['dateTime']),
         description: map['description'],
         paymentMethod: map['paymentMethod'],
         categoryId: map['categoryId'],
-        accountId: map['accountId']
       );
 
   bool validate() => amount > 0 && description.isNotEmpty;

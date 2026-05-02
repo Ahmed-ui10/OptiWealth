@@ -10,22 +10,27 @@ class TransactionRepository {
   }
 
   Future<List<Transaction>> getTransactionsByUser(int userId,
-      {String? categoryId, DateTime? startDate, DateTime? endDate}) async {
+      {int? categoryId, DateTime? startDate, DateTime? endDate}) async {
     final db = await dbHelper.db;
     String where = 'userId = ?';
     List<dynamic> args = [userId];
-    if (categoryId != null) {
+    
+    if (categoryId != null)
+    {
       where += ' AND categoryId = ?';
       args.add(categoryId);
     }
-    if (startDate != null) {
+    if (startDate != null)
+    {
       where += ' AND dateTime >= ?';
       args.add(startDate.toIso8601String());
     }
-    if (endDate != null) {
+    if (endDate != null)
+    {
       where += ' AND dateTime <= ?';
       args.add(endDate.toIso8601String());
     }
+    
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: where,

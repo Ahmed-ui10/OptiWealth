@@ -1,7 +1,7 @@
 class Transaction {
-  int id;
+  int? id; 
   int userId;
-  bool transactionType; 
+  bool transactionType;
   double amount;
   DateTime dateTime;
   String description;
@@ -9,7 +9,7 @@ class Transaction {
   int categoryId;
 
   Transaction({
-    required this.id,
+    this.id, 
     required this.userId,
     required this.transactionType,
     required this.amount,
@@ -19,16 +19,22 @@ class Transaction {
     required this.categoryId,
   });
 
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'userId': userId,
-        'transactionType': transactionType ? 1 : 0,
-        'amount': amount,
-        'dateTime': dateTime.toIso8601String(),
-        'description': description,
-        'paymentMethod': paymentMethod,
-        'categoryId': categoryId,
-      };
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'userId': userId,
+      'transactionType': transactionType ? 1 : 0,
+      'amount': amount,
+      'dateTime': dateTime.toIso8601String(),
+      'description': description,
+      'paymentMethod': paymentMethod,
+      'categoryId': categoryId,
+    };
+    // لا نرسل id إذا كان null أو 0
+    if (id != null && id != 0) {
+      map['id'] = id;
+    }
+    return map;
+  }
 
   factory Transaction.fromMap(Map<String, dynamic> map) => Transaction(
         id: map['id'],

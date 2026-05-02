@@ -21,10 +21,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadUser();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadUser() async {
     final user = await _userRepo.getUserById(widget.userId);
     setState(() {
       _user = user;
@@ -37,14 +37,17 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       _user!.language = newLang;
       await _userRepo.updateUser(_user!);
       final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-      localeProvider.setLocale(Locale(newLang));
+      await localeProvider.setLocale(Locale(newLang));
+      await _loadUser();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
-    if (_loading) return Scaffold(body: Center(child: CircularProgressIndicator()));
+    final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    if (_loading) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       appBar: AppBar(title: Text(isArabic ? 'الملف الشخصي والإعدادات' : 'Profile & Settings')),
       body: Padding(
@@ -55,7 +58,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ListTile(title: Text(isArabic ? 'البريد الإلكتروني' : 'Email'), trailing: Text(_user!.email)),
             ListTile(
               title: Text(isArabic ? 'العملة' : 'Currency'),
-              trailing: DropdownButton(
+              trailing: DropdownButton<String>(
                 value: _user!.currency,
                 items: ['USD', 'EGP', 'EUR'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (v) async {
@@ -67,9 +70,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ),
             ListTile(
               title: Text(isArabic ? 'اللغة' : 'Language'),
-              trailing: DropdownButton(
+              trailing: DropdownButton<String>(
                 value: _user!.language,
-                items: [
+                items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
                   DropdownMenuItem(value: 'ar', child: Text('العربية')),
                 ],

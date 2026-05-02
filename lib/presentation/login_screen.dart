@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => DashboardScreen(userId: user.id)),
+        MaterialPageRoute(builder: (_) => DashboardScreen(userId: user.id!)),
       );
     } else {
       final isArabic =

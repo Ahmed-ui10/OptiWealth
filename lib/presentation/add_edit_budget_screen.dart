@@ -8,7 +8,8 @@ import '../../models/category_model.dart';
 
 class AddEditBudgetScreen extends StatefulWidget {
   final int userId;
-  const AddEditBudgetScreen({Key? key, required this.userId}) : super(key: key);
+  final Budget? budget;
+  const AddEditBudgetScreen({Key? key, required this.userId, this.budget}) : super(key: key);
 
   @override
   _AddEditBudgetScreenState createState() => _AddEditBudgetScreenState();
@@ -26,6 +27,11 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   void initState() {
     super.initState();
     _loadCategories();
+    if (widget.budget != null) {
+      _amountController.text = widget.budget!.budgetAmount.toString();
+      _categoryId = widget.budget!.categoryId;
+      _threshold = widget.budget!.alertThreshold;
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -37,26 +43,30 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
     final now = DateTime.now();
-    
     final budget = Budget(
-      budgetId: 0,
+      budgetId: widget.budget?.budgetId ?? 0,
       userId: widget.userId,
       categoryId: _categoryId!,
-      budgetAmount: double.tryParse(_amountController.text) ?? 0.0,
+      budgetAmount: double.parse(_amountController.text),
       startDate: DateTime(now.year, now.month, 1),
       endDate: DateTime(now.year, now.month + 1, 0),
       alertThreshold: _threshold,
+      spentAmount: widget.budget?.spentAmount ?? 0.0,
+      budgetStatus: widget.budget?.budgetStatus ?? 'On Track',
     );
-    
-    await BudgetService().createBudget(budget);
-    Navigator.pop(context);
+    if (widget.budget == null) {
+  await BudgetService().createBudget(budget);
+} else {
+  await BudgetService().updateBudget(budget);
+}
+Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+    final isArabic = Provider.of<LocaleProvider>(context).isArabic;
     return Scaffold(
-      appBar: AppBar(title: Text(isArabic ? 'إضافة ميزانية' : 'Create Budget')),
+      appBar: AppBar(title: Text(isArabic ? (widget.budget == null ? 'إضافة ميزانية' : 'تعديل ميزانية') : (widget.budget == null ? 'Create Budget' : 'Edit Budget'))),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Form(
@@ -86,7 +96,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
               ),
               Text(isArabic ? 'تنبيه عند $_threshold%' : 'Alert at $_threshold%'),
               SizedBox(height: 20),
-              _loading ? CircularProgressIndicator() : ElevatedButton(onPressed: _save, child: Text(isArabic ? 'إنشاء' : 'Create')),
+              _loading ? CircularProgressIndicator() : ElevatedButton(onPressed: _save, child: Text(isArabic ? 'حفظ' : 'Save')),
             ],
           ),
         ),

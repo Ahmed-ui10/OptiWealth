@@ -6,7 +6,9 @@ class UserRepository {
 
   Future<int> createUser(User user) async {
     final db = await dbHelper.db;
-    return await db.insert('users', user.toMap());
+    Map<String, dynamic> map = user.toMap();
+    map.removeWhere((key, value) => key == 'id' && (value == null || value == 0));
+    return await db.insert('users', map);
   }
 
   Future<User?> getUserByEmail(String email) async {

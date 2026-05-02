@@ -8,7 +8,8 @@ import '../../models/category_model.dart';
 
 class AddEditTransactionScreen extends StatefulWidget {
   final int userId;
-  const AddEditTransactionScreen({Key? key, required this.userId}) : super(key: key);
+  final Transaction? transaction;
+  const AddEditTransactionScreen({Key? key, required this.userId, this.transaction}) : super(key: key);
 
   @override
   _AddEditTransactionScreenState createState() => _AddEditTransactionScreenState();
@@ -23,79 +24,71 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   String _paymentMethod = 'Cash';
   List<Category> _categories = [];
   bool _loading = false;
+  final TransactionService _service = TransactionService();
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
+    if (widget.transaction != null) {
+      _isIncome = widget.transaction!.transactionType;
+      _amountController.text = widget.transaction!.amount.toString();
+      _descController.text = widget.transaction!.description;
+      _categoryId = widget.transaction!.categoryId;
+      _paymentMethod = widget.transaction!.paymentMethod;
+    }
   }
 
   Future<void> _loadCategories() async {
-    final repo = CategoryRepository();
-    final cats = await repo.getAllCategories();
+    final cats = await CategoryRepository().getAllCategories();
     setState(() => _categories = cats);
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
-    
     final transaction = Transaction(
-      id: 0,
+      id: widget.transaction?.id ?? 0,
       userId: widget.userId,
       transactionType: _isIncome,
-      amount: double.tryParse(_amountController.text) ?? 0.0,
-      dateTime: DateTime.now(),
+      amount: double.parse(_amountController.text),
+      dateTime: widget.transaction?.dateTime ?? DateTime.now(),
       description: _descController.text,
       paymentMethod: _paymentMethod,
       categoryId: _categoryId!,
     );
-    
-    await TransactionService().addTransaction(transaction);
-    Navigator.pop(context);
+    if (widget.transaction == null) {
+  await _service.addTransaction(transaction);
+} else {
+  await _service.updateTransaction(transaction);
+}
+Navigator.pop(context, true); 
   }
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+    final isArabic = Provider.of<LocaleProvider>(context).isArabic;
     return Scaffold(
-      appBar: AppBar(title: Text(isArabic ? 'إضافة معاملة' : 'Add Transaction')),
+      appBar: AppBar(title: Text(isArabic ? (widget.transaction == null ? 'إضافة معاملة' : 'تعديل معاملة') : (widget.transaction == null ? 'Add Transaction' : 'Edit Transaction'))),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              SwitchListTile(
-                title: Text(isArabic ? 'دخل' : 'Income'),
-                value: _isIncome,
-                onChanged: (v) => setState(() => _isIncome = v),
-              ),
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: isArabic ? 'المبلغ' : 'Amount'),
-                validator: (v) => double.tryParse(v!) != null ? null : (isArabic ? 'أدخل رقماً' : 'Number required'),
-              ),
-              TextFormField(
-                controller: _descController,
-                decoration: InputDecoration(labelText: isArabic ? 'الوصف' : 'Description'),
-              ),
+              SwitchListTile(title: Text(isArabic ? 'دخل' : 'Income'), value: _isIncome, onChanged: (v) => setState(() => _isIncome = v)),
+              TextFormField(controller: _amountController, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: isArabic ? 'المبلغ' : 'Amount'), validator: (v) => double.tryParse(v!) != null ? null : (isArabic ? 'أدخل رقمًا' : 'Number required')),
+              TextFormField(controller: _descController, decoration: InputDecoration(labelText: isArabic ? 'الوصف' : 'Description')),
               DropdownButtonFormField<int>(
                 value: _categoryId,
-                items: _categories.map((c) => DropdownMenuItem(
-                  value: c.categoryId, 
-                  child: Text(c.name)
-                )).toList(),
+                items: _categories.map((c) => DropdownMenuItem(value: c.categoryId, child: Text(c.name))).toList(),
                 onChanged: (val) => setState(() => _categoryId = val),
                 decoration: InputDecoration(labelText: isArabic ? 'التصنيف' : 'Category'),
                 validator: (v) => v != null ? null : (isArabic ? 'مطلوب' : 'Required'),
               ),
               DropdownButtonFormField<String>(
                 value: _paymentMethod,
-                items: ['Cash', 'Credit Card', 'Bank Transfer']
-                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                    .toList(),
+                items: ['Cash', 'Credit Card', 'Bank Transfer'].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                 onChanged: (val) => setState(() => _paymentMethod = val!),
               ),
               SizedBox(height: 20),

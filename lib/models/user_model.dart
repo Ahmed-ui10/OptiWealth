@@ -1,5 +1,5 @@
 class User {
-  int id;
+  int? id;  
   String fullName;
   String email;
   String passwordHash;
@@ -8,7 +8,7 @@ class User {
   bool notificationsEnabled;
 
   User({
-    required this.id,
+    this.id,  
     required this.fullName,
     required this.email,
     required this.passwordHash,
@@ -17,15 +17,20 @@ class User {
     this.notificationsEnabled = true,
   });
 
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'fullName': fullName,
-        'email': email,
-        'passwordHash': passwordHash,
-        'currency': currency,
-        'language': language,
-        'notificationsEnabled': notificationsEnabled ? 1 : 0,
-      };
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'fullName': fullName,
+      'email': email,
+      'passwordHash': passwordHash,
+      'currency': currency,
+      'language': language,
+      'notificationsEnabled': notificationsEnabled ? 1 : 0,
+    };
+    if (id != null && id != 0) {
+      map['id'] = id;
+    }
+    return map;
+  }
 
   factory User.fromMap(Map<String, dynamic> map) => User(
         id: map['id'],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/dashboard_facade.dart';
+import '../../repositories/category_repository.dart';
 import '../../locale_provider.dart';
 import 'transactions_screen.dart';
 import 'budget_management_screen.dart';
@@ -20,6 +21,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final DashboardFacade _facade = DashboardFacade();
   Map<String, dynamic> _data = {};
+  Map<int, String> _categoryNames = {};
   bool _loading = true;
 
   @override
@@ -29,23 +31,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadData() async {
+    setState(() => _loading = true);
     final data = await _facade.getDashboardData(widget.userId);
+    final categories = await CategoryRepository().getAllCategories();
+    final names = <int, String>{};
+    for (var cat in categories) {
+      names[cat.categoryId] = cat.name;
+    }
     setState(() {
       _data = data;
+      _categoryNames = names;
       _loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isArabic =
-        Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+    final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    final balance = _data['balance'] ?? 0.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27),
       appBar: AppBar(
-        title: Text(isArabic ? 'لوحة التحكم' : 'Dashboard', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color.fromARGB(0, 245, 245, 245),
-
+        title: Text(
+          isArabic ? 'لوحة التحكم' : 'Dashboard',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         flexibleSpace: Container(
@@ -53,106 +68,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color.fromARGB(255, 255, 255, 255),
-               Color.fromARGB(255, 38, 52, 154),
-                 Color.fromARGB(255, 8, 15, 66),
-               Color(0xFF0A0E27)],
+              colors: [
+                Colors.white,
+                Color(0xFF26349A),
+                Color(0xFF0A0E27),
+                Color(0xFF26349A),
+                Colors.white,
+              ],
             ),
           ),
         ),
       ),
       drawer: Drawer(
-        backgroundColor: const Color.fromARGB(255, 0, 7, 147),
+        backgroundColor: const Color(0xFF000793),
         child: ListView(
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                      Color.fromARGB(255, 38, 52, 154),
-                      Color.fromARGB(255, 8, 15, 66),
-                      Color(0xFF0A0E27)],
+                    Color(0xFF26349A),
+                    Color(0xFF080F42),
+                    Color(0xFF0A0E27),
+                  ],
                 ),
               ),
               child: Text(
                 isArabic ? 'القائمة' : 'Menu',
-                style: TextStyle(color: const Color.fromARGB(255, 255, 255, 255), fontSize: 25, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             _buildDrawerItem(
               Icons.home,
               isArabic ? 'الرئيسية' : 'Dashboard',
-              () => Navigator.pop(context),
+              DashboardScreen(userId: widget.userId),
             ),
             _buildDrawerItem(
               Icons.receipt,
               isArabic ? 'المعاملات' : 'Transactions',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TransactionsScreen(userId: widget.userId),
-                  ),
-                );
-              },
+              TransactionsScreen(userId: widget.userId),
             ),
             _buildDrawerItem(
               Icons.bar_chart,
               isArabic ? 'الميزانيات' : 'Budgets',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        BudgetManagementScreen(userId: widget.userId),
-                  ),
-                );
-              },
+              BudgetManagementScreen(userId: widget.userId),
             ),
-            _buildDrawerItem(Icons.flag, isArabic ? 'الأهداف' : 'Goals', () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GoalsScreen(userId: widget.userId),
-                ),
-              );
-            }),
+            _buildDrawerItem(
+              Icons.flag,
+              isArabic ? 'الأهداف' : 'Goals',
+              GoalsScreen(userId: widget.userId),
+            ),
             _buildDrawerItem(
               Icons.pie_chart,
               isArabic ? 'التقارير' : 'Reports',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ReportsScreen(userId: widget.userId),
-                  ),
-                );
-              },
+              ReportsScreen(userId: widget.userId),
             ),
             _buildDrawerItem(
               Icons.notifications,
               isArabic ? 'الإشعارات' : 'Notifications',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => NotificationsScreen(userId: widget.userId),
-                  ),
-                );
-              },
+              NotificationsScreen(userId: widget.userId),
             ),
             _buildDrawerItem(
               Icons.settings,
               isArabic ? 'الملف الشخصي' : 'Profile',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ProfileSettingsScreen(userId: widget.userId),
-                  ),
-                );
-              },
+              ProfileSettingsScreen(userId: widget.userId),
             ),
           ],
         ),
@@ -167,10 +150,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color.fromARGB(255, 255, 255, 255),
-                      Color.fromARGB(255, 38, 52, 154),
-                      Color.fromARGB(255, 8, 15, 66),
-                      Color(0xFF0A0E27)],
+                    colors: [
+                      Colors.white,
+                      Color(0xFF26349A),
+                      Color(0xFF080F42),
+                      Color(0xFF0A0E27),
+                    ],
                   ),
                 ),
                 child: SingleChildScrollView(
@@ -178,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildBalanceCard(_data['balance'], isArabic),
+                      _buildBalanceCard(balance, isArabic),
                       const SizedBox(height: 20),
                       Text(
                         isArabic ? 'أحدث المعاملات' : 'Recent Transactions',
@@ -190,7 +175,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 8),
                       ...(_data['recent'] as List).map(
-                        (t) => _buildTransactionTile(t),
+                        (t) => _buildTransactionTile(t, isArabic),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -203,7 +188,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 8),
                       ...(_data['budgets'] as List).map(
-                        (b) => _buildBudgetCard(b),
+                        (b) => _buildBudgetCard(b, isArabic),
                       ),
                     ],
                   ),
@@ -213,11 +198,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
+  Widget _buildDrawerItem(IconData icon, String title, Widget screen) {
     return ListTile(
       leading: Icon(icon, color: const Color(0xFFF5B042)),
       title: Text(title, style: const TextStyle(color: Colors.white70)),
-      onTap: onTap,
+      onTap: () async {
+        Navigator.pop(context); // إغلاق الدراور
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => screen),
+        );
+        _loadData(); // تحديث الداشبورد بعد العودة
+      },
     );
   }
 
@@ -239,11 +231,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Text(
               isArabic ? 'الرصيد الكلي' : 'Total Balance',
-              style: const TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              '\$${balance.toStringAsFixed(2)}',
+              isArabic
+                  ? '${balance.toStringAsFixed(2)} ج.م'
+                  : '${balance.toStringAsFixed(2)} E.P',
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 32,
@@ -256,7 +254,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTransactionTile(dynamic t) {
+  Widget _buildTransactionTile(dynamic t, bool isArabic) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       color: const Color(0xFF2A3A4A),
@@ -272,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: const TextStyle(color: Colors.white54),
         ),
         trailing: Text(
-          '\$${t.amount}',
+          isArabic ? '${t.amount} ج.م' : '${t.amount} E.P',
           style: TextStyle(
             color: t.transactionType ? Colors.green : Colors.red,
           ),
@@ -281,7 +279,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildBudgetCard(dynamic b) {
+  Widget _buildBudgetCard(dynamic b, bool isArabic) {
+    final categoryName =
+        _categoryNames[b.categoryId] ?? 'Category ${b.categoryId}';
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       color: const Color(0xFF2A3A4A),
@@ -295,14 +295,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  b.category,
+                  categoryName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  '\$${b.spentAmount} / \$${b.budgetAmount}',
+                  isArabic
+                      ? '${b.spentAmount} ج.م / ${b.budgetAmount} ج.م'
+                      : '${b.spentAmount} E.P / ${b.budgetAmount} E.P',
                   style: const TextStyle(color: Colors.white70),
                 ),
               ],

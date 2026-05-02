@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import 'locale_provider.dart';
 import 'presentation/login_screen.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override

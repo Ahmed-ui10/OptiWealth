@@ -18,12 +18,35 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'budgeting_app.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,          
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade, 
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await _createTables(db);
+    await _insertDefaultCategories(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+
+    await _dropTables(db);
+    await _createTables(db);
+    await _insertDefaultCategories(db);
+  }
+
+  Future<void> _dropTables(Database db) async {
+    await db.execute('DROP TABLE IF EXISTS notifications');
+    await db.execute('DROP TABLE IF EXISTS goals');
+    await db.execute('DROP TABLE IF EXISTS budgets');
+    await db.execute('DROP TABLE IF EXISTS transactions');
+    await db.execute('DROP TABLE IF EXISTS categories');
+    await db.execute('DROP TABLE IF EXISTS accounts');
+    await db.execute('DROP TABLE IF EXISTS users');
+  }
+
+  Future<void> _createTables(Database db) async {
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,8 +86,9 @@ class DatabaseHelper {
         dateTime TEXT NOT NULL,
         description TEXT,
         paymentMethod TEXT NOT NULL,
-        categoryId TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+        categoryId INTEGER NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (categoryId) REFERENCES categories (categoryId)
       )
     ''');
 
@@ -72,14 +96,15 @@ class DatabaseHelper {
       CREATE TABLE budgets (
         budgetId INTEGER PRIMARY KEY AUTOINCREMENT,
         userId INTEGER NOT NULL,
-        category TEXT NOT NULL,
+        categoryId INTEGER NOT NULL,
         budgetAmount REAL NOT NULL,
         startDate TEXT NOT NULL,
         endDate TEXT NOT NULL,
         alertThreshold INTEGER NOT NULL,
         spentAmount REAL NOT NULL,
         budgetStatus TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (categoryId) REFERENCES categories (categoryId)
       )
     ''');
 
@@ -107,8 +132,16 @@ class DatabaseHelper {
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
+  }
 
+  Future<void> _insertDefaultCategories(Database db) async {
     await db.rawInsert(
-        "INSERT INTO categories (name, type) VALUES ('طعام', 'expense'), ('مواصلات', 'expense'), ('فواتير', 'expense'), ('ترفيه', 'expense'), ('مرتب', 'income'), ('هدية', 'income')");
+        "INSERT INTO categories (name, type) VALUES "
+        "('طعام', 'expense'), "
+        "('مواصلات', 'expense'), "
+        "('فواتير', 'expense'), "
+        "('ترفيه', 'expense'), "
+        "('مرتب', 'income'), "
+        "('هدية', 'income')");
   }
 }

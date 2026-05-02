@@ -11,20 +11,18 @@ class AuthService {
     final existing = await _userRepo.getUserByEmail(email);
     if (existing != null) return null;
     final user = User(
-      id: 0,
       fullName: fullName,
       email: email,
       passwordHash: password,
-      currency: 'USD',
-      language: 'en',
+      currency: 'EGP',     
+      language: 'ar',      
       notificationsEnabled: true,
     );
     int userId = await _userRepo.createUser(user);
     await _accountRepo.createAccount(Account(
-      accountId: 0,
       userId: userId,
       balance: 0.0,
-      currency: 'USD',
+      currency: 'EGP',
     ));
     return await _userRepo.getUserById(userId);
   }

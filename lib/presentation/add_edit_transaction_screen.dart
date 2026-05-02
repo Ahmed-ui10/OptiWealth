@@ -19,7 +19,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
   bool _isIncome = true;
-  String _categoryId = '';
+  int? _categoryId;
   String _paymentMethod = 'Cash';
   List<Category> _categories = [];
   bool _loading = false;
@@ -37,18 +37,20 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
+    
     final transaction = Transaction(
       id: 0,
       userId: widget.userId,
       transactionType: _isIncome,
-      amount: double.parse(_amountController.text),
+      amount: double.tryParse(_amountController.text) ?? 0.0,
       dateTime: DateTime.now(),
       description: _descController.text,
       paymentMethod: _paymentMethod,
-      categoryId: _categoryId,
+      categoryId: _categoryId!,
     );
+    
     await TransactionService().addTransaction(transaction);
     Navigator.pop(context);
   }
@@ -79,10 +81,13 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
                 controller: _descController,
                 decoration: InputDecoration(labelText: isArabic ? 'الوصف' : 'Description'),
               ),
-              DropdownButtonFormField<String>(
-                value: _categoryId.isEmpty ? null : _categoryId,
-                items: _categories.map((c) => DropdownMenuItem(value: c.categoryId.toString(), child: Text(c.name))).toList(),
-                onChanged: (val) => setState(() => _categoryId = val!),
+              DropdownButtonFormField<int>(
+                value: _categoryId,
+                items: _categories.map((c) => DropdownMenuItem(
+                  value: c.categoryId, 
+                  child: Text(c.name)
+                )).toList(),
+                onChanged: (val) => setState(() => _categoryId = val),
                 decoration: InputDecoration(labelText: isArabic ? 'التصنيف' : 'Category'),
                 validator: (v) => v != null ? null : (isArabic ? 'مطلوب' : 'Required'),
               ),

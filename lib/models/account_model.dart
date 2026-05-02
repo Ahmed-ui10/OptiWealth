@@ -19,11 +19,11 @@ class Account {
       };
 
   factory Account.fromMap(Map<String, dynamic> map) => Account(
-        accountId: map['accountId'],
-        userId: map['userId'],
-        balance: map['balance'],
-        currency: map['currency'],
-      );
+      accountId: map['accountId'],
+      userId: map['userId'],
+      balance: (map['balance'] as num).toDouble(),
+      currency: map['currency'],
+    );
 
   void deposit(double amount) {
     if (amount > 0) balance += amount;

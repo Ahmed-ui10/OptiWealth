@@ -15,9 +15,10 @@ class BudgetService {
     await _budgetRepo.updateBudget(budget);
   }
 
-  Future<void> deleteBudget(int budgetId) async {
-    await _budgetRepo.deleteBudget(budgetId);
-  }
+  Future<void> deleteBudget(int? budgetId) async {
+  if (budgetId == null || budgetId == 0) return;
+  await _budgetRepo.deleteBudget(budgetId);
+}
 
   Future<void> updateBudgetTracking(int userId, int categoryId, double amount, String categoryName) async {
     final budgets = await _budgetRepo.getBudgetsByUser(userId, activeOnly: true);

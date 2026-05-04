@@ -3,12 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/dashboard_facade.dart';
 import '../../repositories/category_repository.dart';
 import '../../locale_provider.dart';
-import 'transactions_screen.dart';
-import 'budget_management_screen.dart';
-import 'goals_screen.dart';
-import 'reports_screen.dart';
-import 'notifications_screen.dart';
-import 'profile_settings_screen.dart';
+import 'widgets/custom_scaffold.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int userId;
@@ -31,18 +26,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _loading = true);
-    final data = await _facade.getDashboardData(widget.userId);
-    final categories = await CategoryRepository().getAllCategories();
-    final names = <int, String>{};
-    for (var cat in categories) {
-      names[cat.categoryId] = cat.name;
+    try {
+      final data = await _facade.getDashboardData(widget.userId);
+      final categories = await CategoryRepository().getAllCategories();
+      final names = <int, String>{};
+      for (var cat in categories) {
+        names[cat.categoryId] = cat.name;
+      }
+      if (mounted) {
+        setState(() {
+          _data = data;
+          _categoryNames = names;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
     }
-    setState(() {
-      _data = data;
-      _categoryNames = names;
-      _loading = false;
-    });
   }
 
   @override
@@ -50,166 +52,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
     final balance = _data['balance'] ?? 0.0;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0E27),
-      appBar: AppBar(
-        title: Text(
-          isArabic ? 'لوحة التحكم' : 'Dashboard',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                Color(0xFF26349A),
-                Color(0xFF0A0E27),
-                Color(0xFF26349A),
-                Colors.white,
-              ],
-            ),
-          ),
-        ),
-      ),
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF000793),
-        child: ListView(
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF26349A),
-                    Color(0xFF080F42),
-                    Color(0xFF0A0E27),
-                  ],
-                ),
-              ),
-              child: Text(
-                isArabic ? 'القائمة' : 'Menu',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            _buildDrawerItem(
-              Icons.home,
-              isArabic ? 'الرئيسية' : 'Dashboard',
-              DashboardScreen(userId: widget.userId),
-            ),
-            _buildDrawerItem(
-              Icons.receipt,
-              isArabic ? 'المعاملات' : 'Transactions',
-              TransactionsScreen(userId: widget.userId),
-            ),
-            _buildDrawerItem(
-              Icons.bar_chart,
-              isArabic ? 'الميزانيات' : 'Budgets',
-              BudgetManagementScreen(userId: widget.userId),
-            ),
-            _buildDrawerItem(
-              Icons.flag,
-              isArabic ? 'الأهداف' : 'Goals',
-              GoalsScreen(userId: widget.userId),
-            ),
-            _buildDrawerItem(
-              Icons.pie_chart,
-              isArabic ? 'التقارير' : 'Reports',
-              ReportsScreen(userId: widget.userId),
-            ),
-            _buildDrawerItem(
-              Icons.notifications,
-              isArabic ? 'الإشعارات' : 'Notifications',
-              NotificationsScreen(userId: widget.userId),
-            ),
-            _buildDrawerItem(
-              Icons.settings,
-              isArabic ? 'الملف الشخصي' : 'Profile',
-              ProfileSettingsScreen(userId: widget.userId),
-            ),
-          ],
-        ),
-      ),
+    return CustomScaffold(
+      userId: widget.userId,
+      title: isArabic ? 'لوحة التحكم' : 'Dashboard',
+      showBackButton: false,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
-              child: Container(
-                height: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white,
-                      Color(0xFF26349A),
-                      Color(0xFF080F42),
-                      Color(0xFF0A0E27),
-                    ],
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildBalanceCard(balance, isArabic),
-                      const SizedBox(height: 20),
-                      Text(
-                        isArabic ? 'أحدث المعاملات' : 'Recent Transactions',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
+              color: const Color(0xFFF5B042),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBalanceCard(balance, isArabic),
+                    const SizedBox(height: 20),
+                    Text(
+                      isArabic ? 'أحدث المعاملات' : 'Recent Transactions',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 8),
-                      ...(_data['recent'] as List).map(
-                        (t) => _buildTransactionTile(t, isArabic),
+                    ),
+                    const SizedBox(height: 8),
+                    ...(_data['recent'] as List).map(
+                      (t) => _buildTransactionTile(t, isArabic),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isArabic ? 'الميزانيات النشطة' : 'Active Budgets',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        isArabic ? 'الميزانيات النشطة' : 'Active Budgets',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...(_data['budgets'] as List).map(
-                        (b) => _buildBudgetCard(b, isArabic),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...(_data['budgets'] as List).map(
+                      (b) => _buildBudgetCard(b, isArabic),
+                    ),
+                  ],
                 ),
               ),
             ),
-    );
-  }
-
-  Widget _buildDrawerItem(IconData icon, String title, Widget screen) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xFFF5B042)),
-      title: Text(title, style: const TextStyle(color: Colors.white70)),
-      onTap: () async {
-        Navigator.pop(context); // إغلاق الدراور
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => screen),
-        );
-        _loadData(); // تحديث الداشبورد بعد العودة
-      },
     );
   }
 

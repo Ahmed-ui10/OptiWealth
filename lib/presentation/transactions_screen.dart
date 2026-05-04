@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/transaction_service.dart';
 import '../../locale_provider.dart';
 import '../../models/transaction_model.dart';
+import 'widgets/custom_scaffold.dart';
 import 'add_edit_transaction_screen.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -34,21 +35,38 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> _deleteTransaction(Transaction transaction) async {
-    final isArabic = Provider.of<LocaleProvider>(context, listen: false).isArabic;
+    final isArabic = Provider.of<LocaleProvider>(
+      context,
+      listen: false,
+    ).isArabic;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isArabic ? 'تأكيد الحذف' : 'Confirm Delete'),
-        content: Text(isArabic ? 'هل أنت متأكد من حذف هذه المعاملة؟' : 'Are you sure you want to delete this transaction?'),
+        backgroundColor: const Color(0xFF2A3A4A),
+        title: Text(
+          isArabic ? 'تأكيد الحذف' : 'Confirm Delete',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          isArabic
+              ? 'هل أنت متأكد من حذف هذه المعاملة؟'
+              : 'Are you sure you want to delete this transaction?',
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+            child: Text(
+              isArabic ? 'إلغاء' : 'Cancel',
+              style: const TextStyle(color: Color(0xFFF5B042)),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(isArabic ? 'حذف' : 'Delete'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(
+              isArabic ? 'حذف' : 'Delete',
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -62,61 +80,94 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
-    return Scaffold(
-      appBar: AppBar(title: Text(isArabic ? 'المعاملات' : 'Transactions')),
-      body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _transactions.length,
-              itemBuilder: (ctx, i) => Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: ListTile(
-                  title: Text(_transactions[i].description),
-                  subtitle: Text(_transactions[i].dateTime.toLocal().toString()),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _transactions[i].transactionType ? '+${_transactions[i].amount}' : '-${_transactions[i].amount}',
-                        style: TextStyle(
-                          color: _transactions[i].transactionType ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddEditTransactionScreen(
-                                userId: widget.userId,
-                                transaction: _transactions[i],
-                              ),
-                            ),
-                          );
-                          if (result == true) _load();
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteTransaction(_transactions[i]),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+    return CustomScaffold(
+      userId: widget.userId,
+      title: isArabic ? 'المعاملات' : 'Transactions',
+      showBackButton: true,
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
+        backgroundColor: const Color(0xFFF5B042),
+        child: const Icon(Icons.add, color: Colors.black),
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AddEditTransactionScreen(userId: widget.userId)),
+            MaterialPageRoute(
+              builder: (_) => AddEditTransactionScreen(userId: widget.userId),
+            ),
           );
           if (result == true) _load();
         },
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: const Color(0xFFF5B042),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _transactions.length,
+                itemBuilder: (ctx, i) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  color: const Color(0xFF2A3A4A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    leading: Icon(
+                      _transactions[i].transactionType
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
+                      color: _transactions[i].transactionType
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                    title: Text(
+                      _transactions[i].description,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      _transactions[i].dateTime.toLocal().toString(),
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _transactions[i].transactionType
+                              ? '+${_transactions[i].amount}'
+                              : '-${_transactions[i].amount}',
+                          style: TextStyle(
+                            color: _transactions[i].transactionType
+                                ? Colors.green
+                                : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AddEditTransactionScreen(
+                                  userId: widget.userId,
+                                  transaction: _transactions[i],
+                                ),
+                              ),
+                            );
+                            if (result == true) _load();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteTransaction(_transactions[i]),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

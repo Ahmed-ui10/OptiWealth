@@ -6,7 +6,7 @@ class BudgetRepository {
 
   Future<int> createBudget(Budget budget) async {
     final db = await dbHelper.db;
-    return await db.insert('budgets', budget.toMap());
+    return await db.insert('budgets', budget.toMap()); 
   }
 
   Future<int> updateBudget(Budget budget) async {

@@ -1,5 +1,5 @@
 class Budget {
-  int budgetId;
+  int? budgetId;
   int userId;
   int categoryId;
   double budgetAmount;
@@ -10,49 +10,49 @@ class Budget {
   String budgetStatus;
 
   Budget({
-    required this.budgetId,
+    this.budgetId,
     required this.userId,
     required this.categoryId,
     required this.budgetAmount,
     required this.startDate,
     required this.endDate,
     required this.alertThreshold,
-    this.spentAmount = 0.0,
-    this.budgetStatus = 'Active',
+    required this.spentAmount,
+    required this.budgetStatus,
   });
 
   double get spentPercentage => budgetAmount > 0 ? spentAmount / budgetAmount : 0.0;
+  double get remaining => budgetAmount - spentAmount;
 
-  void addExpense(double amount)
-  {
+  void addExpense(double amount) {
     spentAmount += amount;
-    if (spentAmount >= budgetAmount)
-    {
+    if (spentAmount >= budgetAmount) {
       budgetStatus = 'Exceeded';
-    }
-    else if (spentAmount >= budgetAmount * (alertThreshold / 100))
-    {
+    } else if (spentAmount >= budgetAmount * (alertThreshold / 100)) {
       budgetStatus = 'Near Limit';
-    }
-    else
-    {
+    } else {
       budgetStatus = 'On Track';
     }
   }
 
   bool isExceeded() => spentAmount >= budgetAmount;
 
-  Map<String, dynamic> toMap() => {
-        'budgetId': budgetId,
-        'userId': userId,
-        'categoryId': categoryId,
-        'budgetAmount': budgetAmount,
-        'startDate': startDate.toIso8601String(),
-        'endDate': endDate.toIso8601String(),
-        'alertThreshold': alertThreshold,
-        'spentAmount': spentAmount,
-        'budgetStatus': budgetStatus,
-      };
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'userId': userId,
+      'categoryId': categoryId,
+      'budgetAmount': budgetAmount,
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
+      'alertThreshold': alertThreshold,
+      'spentAmount': spentAmount,
+      'budgetStatus': budgetStatus,
+    };
+    if (budgetId != null && budgetId != 0) {
+      map['budgetId'] = budgetId;
+    }
+    return map;
+  }
 
   factory Budget.fromMap(Map<String, dynamic> map) => Budget(
         budgetId: map['budgetId'],

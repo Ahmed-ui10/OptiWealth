@@ -25,6 +25,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _load();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     final now = DateTime.now();
@@ -53,9 +59,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           : _report == null || _report!.categoryTotals.isEmpty
           ? Center(
               child: Text(
-                isArabic
-                    ? 'لا توجد بيانات لهذه الفترة'
-                    : 'No data for this period',
+                isArabic ? 'لا توجد بيانات لهذه الفترة' : 'No data for this period',
                 style: const TextStyle(color: Colors.white70),
               ),
             )
@@ -69,6 +73,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _buildPieChartSection(isArabic),
                     const SizedBox(height: 40),
                     _buildBarChartSection(isArabic),
+                    const SizedBox(height: 40),
+                    _buildBudgetsSummarySection(isArabic),
                   ],
                 ),
               ),
@@ -102,8 +108,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
-                  color: Colors
-                      .primaries[e.key.hashCode % Colors.primaries.length],
+                  color: Colors.primaries[e.key.hashCode % Colors.primaries.length],
                 );
               }).toList(),
             ),
@@ -182,6 +187,43 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildBudgetsSummarySection(bool isArabic) {
+    final budgets = _report!.budgetsSummary;
+    if (budgets.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      children: [
+        Text(
+          isArabic ? 'ملخص الميزانيات' : 'Budgets Summary',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 20),
+        ...budgets.entries.map((entry) => Card(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          color: const Color(0xFF2A3A4A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            title: Text(entry.key, style: const TextStyle(color: Colors.white)),
+            trailing: Text(
+              '${(entry.value * 100).toStringAsFixed(1)}%',
+              style: const TextStyle(color: Color(0xFFF5B042), fontWeight: FontWeight.bold),
+            ),
+            subtitle: LinearProgressIndicator(
+              value: entry.value,
+              backgroundColor: Colors.grey[800],
+              color: entry.value >= 1 ? Colors.red : const Color(0xFFF5B042),
+            ),
+          ),
+        )),
       ],
     );
   }

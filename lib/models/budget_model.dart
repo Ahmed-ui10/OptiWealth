@@ -21,11 +21,13 @@ class Budget {
     required this.budgetStatus,
   });
 
-  double get spentPercentage => budgetAmount > 0 ? spentAmount / budgetAmount : 0.0;
+  double get spentPercentage =>
+      budgetAmount > 0 ? spentAmount / budgetAmount : 0.0;
   double get remaining => budgetAmount - spentAmount;
 
   void addExpense(double amount) {
     spentAmount += amount;
+    if (spentAmount < 0) spentAmount = 0;
     if (spentAmount >= budgetAmount) {
       budgetStatus = 'Exceeded';
     } else if (spentAmount >= budgetAmount * (alertThreshold / 100)) {
@@ -42,8 +44,8 @@ class Budget {
       'userId': userId,
       'categoryId': categoryId,
       'budgetAmount': budgetAmount,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
+      'startDate': startDate.toIso8601String().split('.')[0],
+      'endDate': endDate.toIso8601String().split('.')[0],
       'alertThreshold': alertThreshold,
       'spentAmount': spentAmount,
       'budgetStatus': budgetStatus,
@@ -55,14 +57,14 @@ class Budget {
   }
 
   factory Budget.fromMap(Map<String, dynamic> map) => Budget(
-        budgetId: map['budgetId'],
-        userId: map['userId'],
-        categoryId: map['categoryId'],
-        budgetAmount: (map['budgetAmount'] as num).toDouble(),
-        startDate: DateTime.parse(map['startDate']),
-        endDate: DateTime.parse(map['endDate']),
-        alertThreshold: map['alertThreshold'],
-        spentAmount: (map['spentAmount'] as num).toDouble(),
-        budgetStatus: map['budgetStatus'],
-      );
+    budgetId: map['budgetId'],
+    userId: map['userId'],
+    categoryId: map['categoryId'],
+    budgetAmount: (map['budgetAmount'] as num).toDouble(),
+    startDate: DateTime.parse(map['startDate']),
+    endDate: DateTime.parse(map['endDate']),
+    alertThreshold: map['alertThreshold'],
+    spentAmount: (map['spentAmount'] as num).toDouble(),
+    budgetStatus: map['budgetStatus'],
+  );
 }

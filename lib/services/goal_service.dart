@@ -12,13 +12,19 @@ class GoalService {
     return await _goalRepo.getGoalsByUser(userId);
   }
 
-  Future<void> updateGoalProgress(int userId, int goalId, double amount) async
-  {
+  Future<void> updateGoalProgress(int goalId, double amount) async {
+    final goal = await _goalRepo.getGoalById(goalId);
+    if (goal != null && goal.status != 'Completed') {
+      goal.updateProgress(amount);
+      await _goalRepo.updateGoal(goal);
+    }
+  }
+
+  // أضف هذه الدالة
+  Future<void> updateAllGoalsProgress(int userId, double amount) async {
     final goals = await _goalRepo.getGoalsByUser(userId);
-    for (var goal in goals)
-    {
-      if (goal.id == goalId && goal.status != 'Completed')
-      {
+    for (var goal in goals) {
+      if (goal.status != 'Completed') {
         goal.updateProgress(amount);
         await _goalRepo.updateGoal(goal);
       }

@@ -34,7 +34,13 @@ class CustomScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27),
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -45,7 +51,13 @@ class CustomScaffold extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.white, Color(0xFF26349A), Color(0xFF0A0E27), Color(0xFF26349A), Colors.white],
+              colors: [
+                Colors.white,
+                Color(0xFF26349A),
+                Color(0xFF0A0E27),
+                Color(0xFF26349A),
+                Colors.white,
+              ],
             ),
           ),
         ),
@@ -58,7 +70,12 @@ class CustomScaffold extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, Color(0xFF26349A), Color(0xFF080F42), Color(0xFF0A0E27)],
+            colors: [
+              Colors.white,
+              Color(0xFF26349A),
+              Color(0xFF080F42),
+              Color(0xFF0A0E27),
+            ],
           ),
         ),
         child: body,
@@ -70,7 +87,13 @@ class CustomScaffold extends StatelessWidget {
 
   Widget? _buildLeading(BuildContext context, bool isArabic) {
     if (showBackButton) {
-      return null;
+      return IconButton(
+        icon: Icon(
+          isArabic ? Icons.arrow_forward : Icons.arrow_back,
+          color: Colors.white,
+        ),
+        onPressed: () => Navigator.pop(context),
+      );
     } else {
       if (!isArabic) {
         return Builder(
@@ -79,33 +102,13 @@ class CustomScaffold extends StatelessWidget {
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         );
-      } else {
-        return null;
       }
+      return null;
     }
   }
 
   List<Widget> _buildActions(BuildContext context, bool isArabic) {
     List<Widget> actions = [];
-
-    if (showBackButton) {
-      if (isArabic) {
-        actions.add(
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        );
-      } else {
-        actions.add(
-          IconButton(
-            icon: const Icon(Icons.arrow_forward, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        );
-      }
-    }
-
     if (isArabic && !showBackButton) {
       actions.add(
         Builder(
@@ -126,26 +129,76 @@ class CustomScaffold extends StatelessWidget {
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(colors: [Color(0xFF26349A), Color(0xFF080F42), Color(0xFF0A0E27)]),
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF26349A),
+                  Color(0xFF080F42),
+                  Color(0xFF0A0E27),
+                ],
+              ),
             ),
             child: Text(
               isArabic ? 'القائمة' : 'Menu',
-              style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          _buildDrawerItem(context, Icons.home, isArabic ? 'الرئيسية' : 'Dashboard', DashboardScreen(userId: userId)),
-          _buildDrawerItem(context, Icons.receipt, isArabic ? 'المعاملات' : 'Transactions', TransactionsScreen(userId: userId)),
-          _buildDrawerItem(context, Icons.bar_chart, isArabic ? 'الميزانيات' : 'Budgets', BudgetManagementScreen(userId: userId)),
-          _buildDrawerItem(context, Icons.flag, isArabic ? 'الأهداف' : 'Goals', GoalsScreen(userId: userId)),
-          _buildDrawerItem(context, Icons.pie_chart, isArabic ? 'التقارير' : 'Reports', ReportsScreen(userId: userId)),
-          _buildDrawerItem(context, Icons.notifications, isArabic ? 'الإشعارات' : 'Notifications', NotificationsScreen(userId: userId)),
-          _buildDrawerItem(context, Icons.settings, isArabic ? 'الملف الشخصي' : 'Profile', ProfileSettingsScreen(userId: userId)),
+          _buildDrawerItem(
+            context,
+            Icons.home,
+            isArabic ? 'الرئيسية' : 'Dashboard',
+            DashboardScreen(userId: userId),
+          ),
+          _buildDrawerItem(
+            context,
+            Icons.receipt,
+            isArabic ? 'المعاملات' : 'Transactions',
+            TransactionsScreen(userId: userId),
+          ),
+          _buildDrawerItem(
+            context,
+            Icons.bar_chart,
+            isArabic ? 'الميزانيات' : 'Budgets',
+            BudgetManagementScreen(userId: userId),
+          ),
+          _buildDrawerItem(
+            context,
+            Icons.flag,
+            isArabic ? 'الأهداف' : 'Goals',
+            GoalsScreen(userId: userId),
+          ),
+          _buildDrawerItem(
+            context,
+            Icons.pie_chart,
+            isArabic ? 'التقارير' : 'Reports',
+            ReportsScreen(userId: userId),
+          ),
+          _buildDrawerItem(
+            context,
+            Icons.notifications,
+            isArabic ? 'الإشعارات' : 'Notifications',
+            NotificationsScreen(userId: userId),
+          ),
+          _buildDrawerItem(
+            context,
+            Icons.settings,
+            isArabic ? 'الملف الشخصي' : 'Profile',
+            ProfileSettingsScreen(userId: userId),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, IconData icon, String title, Widget screen) {
+  Widget _buildDrawerItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Widget screen,
+  ) {
     return ListTile(
       leading: Icon(icon, color: const Color(0xFFF5B042)),
       title: Text(title, style: const TextStyle(color: Colors.white70)),

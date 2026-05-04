@@ -19,9 +19,24 @@ class GoalRepository {
     return maps.map((m) => FinancialGoal.fromMap(m)).toList();
   }
 
+  Future<FinancialGoal?> getGoalById(int id) async {
+    final db = await dbHelper.db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'goals',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) return FinancialGoal.fromMap(maps.first);
+    return null;
+  }
+
   Future<int> updateGoal(FinancialGoal goal) async {
     final db = await dbHelper.db;
-    return await db.update('goals', goal.toMap(),
-        where: 'id = ?', whereArgs: [goal.id]);
+    return await db.update(
+      'goals',
+      goal.toMap(),
+      where: 'id = ?',
+      whereArgs: [goal.id],
+    );
   }
 }

@@ -77,6 +77,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
@@ -126,7 +131,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       style: const TextStyle(color: Colors.white),
                     ),
                     subtitle: Text(
-                      _transactions[i].dateTime.toLocal().toString(),
+                      _formatDateTime(_transactions[i].dateTime),
                       style: const TextStyle(color: Colors.white54),
                     ),
                     trailing: Row(

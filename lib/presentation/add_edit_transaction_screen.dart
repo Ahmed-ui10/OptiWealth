@@ -69,9 +69,18 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCategories() async {
     final cats = await CategoryRepository().getAllCategories();
-    setState(() => _categories = cats);
+    if (mounted) {
+      setState(() => _categories = cats);
+    }
   }
 
   Future<void> _save() async {
@@ -92,7 +101,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     } else {
       await _service.updateTransaction(transaction);
     }
-    Navigator.pop(context, true);
+    if (mounted) Navigator.pop(context, true);
   }
 
   @override

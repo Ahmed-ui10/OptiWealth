@@ -1,5 +1,5 @@
 class Transaction {
-  int? id; 
+  int? id;
   int userId;
   bool transactionType;
   double amount;
@@ -9,7 +9,7 @@ class Transaction {
   int categoryId;
 
   Transaction({
-    this.id, 
+    this.id,
     required this.userId,
     required this.transactionType,
     required this.amount,
@@ -24,12 +24,11 @@ class Transaction {
       'userId': userId,
       'transactionType': transactionType ? 1 : 0,
       'amount': amount,
-      'dateTime': dateTime.toIso8601String(),
+      'dateTime': dateTime.toIso8601String().split('.')[0],
       'description': description,
       'paymentMethod': paymentMethod,
       'categoryId': categoryId,
     };
-    // لا نرسل id إذا كان null أو 0
     if (id != null && id != 0) {
       map['id'] = id;
     }
@@ -37,15 +36,15 @@ class Transaction {
   }
 
   factory Transaction.fromMap(Map<String, dynamic> map) => Transaction(
-        id: map['id'],
-        userId: map['userId'],
-        transactionType: map['transactionType'] == 1,
-        amount: (map['amount'] as num).toDouble(),
-        dateTime: DateTime.parse(map['dateTime']),
-        description: map['description'],
-        paymentMethod: map['paymentMethod'],
-        categoryId: map['categoryId'],
-      );
+    id: map['id'],
+    userId: map['userId'],
+    transactionType: map['transactionType'] == 1,
+    amount: (map['amount'] as num).toDouble(),
+    dateTime: DateTime.parse(map['dateTime']),
+    description: map['description'],
+    paymentMethod: map['paymentMethod'],
+    categoryId: map['categoryId'],
+  );
 
   bool validate() => amount > 0 && description.isNotEmpty;
 }

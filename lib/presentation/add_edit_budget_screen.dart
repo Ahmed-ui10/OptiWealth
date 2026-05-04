@@ -7,7 +7,6 @@ import '../../models/budget_model.dart';
 import '../../models/category_model.dart';
 import 'widgets/custom_scaffold.dart';
 
-// خرائط الترجمة
 final Map<String, String> _enToAr = {
   'Food': 'طعام',
   'Transport': 'مواصلات',
@@ -61,22 +60,33 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCategories() async {
     final cats = await CategoryRepository().getAllCategories();
-    setState(() => _categories = cats);
+    if (mounted) {
+      setState(() => _categories = cats);
+    }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
     final now = DateTime.now();
+    final startDate = DateTime(now.year, now.month, 1);
+    final endDate = DateTime(now.year, now.month + 1, 0);
+
     final budget = Budget(
       budgetId: widget.budget?.budgetId,
       userId: widget.userId,
       categoryId: _categoryId!,
       budgetAmount: double.parse(_amountController.text),
-      startDate: DateTime(now.year, now.month, 1),
-      endDate: DateTime(now.year, now.month + 1, 0),
+      startDate: startDate,
+      endDate: endDate,
       alertThreshold: _threshold,
       spentAmount: widget.budget?.spentAmount ?? 0.0,
       budgetStatus: widget.budget?.budgetStatus ?? 'On Track',
@@ -86,7 +96,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     } else {
       await BudgetService().updateBudget(budget);
     }
-    Navigator.pop(context, true);
+    if (mounted) Navigator.pop(context, true);
   }
 
   @override

@@ -34,6 +34,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
     });
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
@@ -45,13 +49,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
         backgroundColor: const Color(0xFFF5B042),
         child: const Icon(Icons.add, color: Colors.black),
         onPressed: () async {
-          await Navigator.push(
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => AddEditGoalScreen(userId: widget.userId),
             ),
           );
-          _load();
+          if (result == true) _load();
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -90,6 +94,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                 ? '${goal.currentAmount} ج.م / ${goal.targetAmount} ج.م'
                                 : '${goal.currentAmount} E.P / ${goal.targetAmount} E.P',
                             style: const TextStyle(color: Colors.white70),
+                          ),
+                          Text(
+                            '${isArabic ? 'آخر موعد' : 'Deadline'}: ${_formatDate(goal.deadline)}',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),

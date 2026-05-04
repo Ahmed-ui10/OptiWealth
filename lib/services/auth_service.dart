@@ -23,6 +23,13 @@ class AuthService {
     await prefs.remove('userId');
   }
 
+  Future<void> clearAllUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    await prefs.remove('selected_currency');
+    await prefs.remove('exchange_rates');
+  }
+
   Future<User?> register(String fullName, String email, String password) async {
     final existing = await _userRepo.getUserByEmail(email);
     if (existing != null) return null;
@@ -35,11 +42,9 @@ class AuthService {
       notificationsEnabled: true,
     );
     int userId = await _userRepo.createUser(user);
-    await _accountRepo.createAccount(Account(
-      userId: userId,
-      balance: 0.0,
-      currency: 'EGP',
-    ));
+    await _accountRepo.createAccount(
+      Account(userId: userId, balance: 0.0, currency: 'EGP'),
+    );
     return await _userRepo.getUserById(userId);
   }
 
@@ -53,6 +58,6 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await clearSavedUserId();
+    await clearAllUserData();
   }
 }

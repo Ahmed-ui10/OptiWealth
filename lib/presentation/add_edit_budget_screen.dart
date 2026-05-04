@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/budget_service.dart';
 import '../../repositories/category_repository.dart';
+import '../../repositories/transaction_repository.dart';
 import '../../locale_provider.dart';
 import '../../models/budget_model.dart';
 import '../../models/category_model.dart';
+import '../../models/transaction_model.dart';
 import 'widgets/custom_scaffold.dart';
 
 final Map<String, String> _enToAr = {
@@ -48,6 +50,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   List<Category> _categories = [];
   int _threshold = 80;
   bool _loading = false;
+  final TransactionRepository _transactionRepo = TransactionRepository();
 
   @override
   void initState() {
@@ -60,25 +63,54 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadCategories() async {
     final cats = await CategoryRepository().getAllCategories();
-    if (mounted) {
-      setState(() => _categories = cats);
+    setState(() => _categories = cats);
+  }
+
+  DateTime _startOfMonth(DateTime now) => DateTime(now.year, now.month, 1);
+  DateTime _endOfMonth(DateTime now) =>
+      DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
+
+  Future<double> _calculateExistingSpentAmount(
+    int userId,
+    int categoryId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final transactions = await _transactionRepo.getTransactionsByUser(
+      userId,
+      categoryId: categoryId,
+      startDate: start,
+      endDate: end,
+    );
+    double net = 0.0;
+    for (var tx in transactions) {
+      if (!tx.transactionType) {
+        net += tx.amount;
+      } else {
+        net -= tx.amount;
+      }
     }
+    return net;
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
     final now = DateTime.now();
-    final startDate = DateTime(now.year, now.month, 1);
-    final endDate = DateTime(now.year, now.month + 1, 0);
+    final startDate = _startOfMonth(now);
+    final endDate = _endOfMonth(now);
+
+    double initialSpent = widget.budget?.spentAmount ?? 0.0;
+    if (widget.budget == null) {
+      initialSpent = await _calculateExistingSpentAmount(
+        widget.userId,
+        _categoryId!,
+        startDate,
+        endDate,
+      );
+    }
 
     final budget = Budget(
       budgetId: widget.budget?.budgetId,
@@ -88,15 +120,24 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       startDate: startDate,
       endDate: endDate,
       alertThreshold: _threshold,
-      spentAmount: widget.budget?.spentAmount ?? 0.0,
+      spentAmount: initialSpent,
       budgetStatus: widget.budget?.budgetStatus ?? 'On Track',
     );
+    if (budget.spentAmount >= budget.budgetAmount) {
+      budget.budgetStatus = 'Exceeded';
+    } else if (budget.spentAmount >=
+        budget.budgetAmount * (budget.alertThreshold / 100)) {
+      budget.budgetStatus = 'Near Limit';
+    } else {
+      budget.budgetStatus = 'On Track';
+    }
+
     if (widget.budget == null) {
       await BudgetService().createBudget(budget);
     } else {
       await BudgetService().updateBudget(budget);
     }
-    if (mounted) Navigator.pop(context, true);
+    Navigator.pop(context, true);
   }
 
   @override
@@ -110,6 +151,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       userId: widget.userId,
       title: title,
       showBackButton: true,
+      hideMenu: true,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Card(
@@ -128,12 +170,14 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
                     value: _categoryId,
                     dropdownColor: const Color(0xFF2A3A4A),
                     style: const TextStyle(color: Colors.white),
-                    items: _categories.map((c) {
-                      return DropdownMenuItem<int>(
-                        value: c.categoryId,
-                        child: Text(_translate(c.name, isArabic)),
-                      );
-                    }).toList(),
+                    items: _categories
+                        .map(
+                          (c) => DropdownMenuItem<int>(
+                            value: c.categoryId,
+                            child: Text(_translate(c.name, isArabic)),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (val) => setState(() => _categoryId = val),
                     decoration: InputDecoration(
                       labelText: isArabic ? 'التصنيف' : 'Category',

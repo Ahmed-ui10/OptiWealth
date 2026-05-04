@@ -3,8 +3,40 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../services/report_service.dart';
 import '../../locale_provider.dart';
+import '../../currency_provider.dart';
 import '../../models/financial_report_model.dart';
 import 'widgets/custom_scaffold.dart';
+
+const Map<String, String> _enToAr = {
+  'Food': 'طعام',
+  'Transport': 'مواصلات',
+  'Bills': 'فواتير',
+  'Entertainment': 'ترفيه',
+  'Salary': 'مرتب',
+  'Gift': 'هدية',
+  'Cash': 'كاش',
+  'Credit Card': 'بطاقة ائتمان',
+  'Bank Transfer': 'تحويل بنكي',
+};
+
+const Map<String, String> _arToEn = {
+  'طعام': 'Food',
+  'مواصلات': 'Transport',
+  'بواتير': 'Bills',
+  'ترفيه': 'Entertainment',
+  'مرتب': 'Salary',
+  'هدية': 'Gift',
+  'كاش': 'Cash',
+  'بطاقة ائتمان': 'Credit Card',
+  'تحويل بنكي': 'Bank Transfer',
+};
+
+String _translate(String name, bool isArabic) {
+  if (isArabic)
+    return _enToAr[name] ?? name;
+  else
+    return _arToEn[name] ?? name;
+}
 
 class ReportsScreen extends StatefulWidget {
   final int userId;
@@ -47,19 +79,35 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  String _formatNumber(double value) {
+    if (value >= 1000000000) {
+      return '${(value / 1000000000).toStringAsFixed(1)}B';
+    } else if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    } else if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}k';
+    } else {
+      return value.toInt().toString();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    final currency = Provider.of<CurrencyProvider>(context);
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'التقارير المالية' : 'Financial Reports',
-      showBackButton: true,
+      showBackButton: false,
+      hideMenu: false,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _report == null || _report!.categoryTotals.isEmpty
+          : _report == null
           ? Center(
               child: Text(
-                isArabic ? 'لا توجد بيانات لهذه الفترة' : 'No data for this period',
+                isArabic
+                    ? 'لا توجد بيانات لهذه الفترة'
+                    : 'No data for this period',
                 style: const TextStyle(color: Colors.white70),
               ),
             )
@@ -70,11 +118,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _buildPieChartSection(isArabic),
+                    if (_report!.categoryTotals.isNotEmpty)
+                      _buildPieChartSection(isArabic),
                     const SizedBox(height: 40),
-                    _buildBarChartSection(isArabic),
+                    _buildIncomeExpenseBarChart(isArabic),
                     const SizedBox(height: 40),
-                    _buildBudgetsSummarySection(isArabic),
+                    _buildPaymentMethodTable(isArabic, currency),
                   ],
                 ),
               ),
@@ -83,6 +132,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildPieChartSection(bool isArabic) {
+    final Map<String, double> translatedTotals = {};
+    for (var entry in _report!.categoryTotals.entries) {
+      final translatedName = _translate(entry.key, isArabic);
+      translatedTotals[translatedName] = entry.value;
+    }
     return Column(
       children: [
         Text(
@@ -95,22 +149,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 250,
+          height: 300,
           child: PieChart(
             PieChartData(
-              sections: _report!.categoryTotals.entries.map((e) {
+              sections: translatedTotals.entries.map((e) {
                 return PieChartSectionData(
                   value: e.value,
                   title: e.key,
-                  radius: 70,
+                  radius: 80,
                   titleStyle: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
-                  color: Colors.primaries[e.key.hashCode % Colors.primaries.length],
+                  color: Colors
+                      .primaries[e.key.hashCode % Colors.primaries.length],
                 );
               }).toList(),
+              centerSpaceRadius: 20,
+              sectionsSpace: 2,
             ),
           ),
         ),
@@ -118,9 +175,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildBarChartSection(bool isArabic) {
+  Widget _buildIncomeExpenseBarChart(bool isArabic) {
     final income = _report!.incomeVsExpenseData['income'] ?? 0.0;
     final expense = _report!.incomeVsExpenseData['expense'] ?? 0.0;
+    final maxValue = income > expense ? income : expense;
     return Column(
       children: [
         Text(
@@ -133,7 +191,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 250,
+          height: 300,
           child: BarChart(
             BarChartData(
               barGroups: [
@@ -143,14 +201,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     BarChartRodData(
                       toY: income,
                       color: Colors.green,
-                      width: 25,
+                      width: 35,
+                      borderRadius: BorderRadius.circular(6),
                     ),
                   ],
                 ),
                 BarChartGroupData(
                   x: 1,
                   barRods: [
-                    BarChartRodData(toY: expense, color: Colors.red, width: 25),
+                    BarChartRodData(
+                      toY: expense,
+                      color: Colors.red,
+                      width: 35,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ],
                 ),
               ],
@@ -158,32 +222,51 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
+                    reservedSize: 40,
                     getTitlesWidget: (value, _) {
-                      if (value == 0)
-                        return Text(
-                          isArabic ? 'دخل' : 'Income',
-                          style: const TextStyle(color: Colors.white70),
-                        );
-                      if (value == 1)
-                        return Text(
-                          isArabic ? 'مصروف' : 'Expense',
-                          style: const TextStyle(color: Colors.white70),
-                        );
-                      return const Text('');
+                      String title = '';
+                      if (value == 0) title = isArabic ? 'دخل' : 'Income';
+                      if (value == 1) title = isArabic ? 'مصروف' : 'Expense';
+                      return Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      );
                     },
                   ),
                 ),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 40,
+                    reservedSize: 50,
                     getTitlesWidget: (value, _) => Text(
-                      value.toInt().toString(),
-                      style: const TextStyle(color: Colors.white70),
+                      _formatNumber(value),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(
+                show: true,
+                drawHorizontalLine: maxValue > 0, // only draw if maxValue > 0
+                drawVerticalLine: false,
+                horizontalInterval: maxValue > 0 ? maxValue / 5 : 1,
+                getDrawingHorizontalLine: (value) =>
+                    FlLine(color: Colors.white24, strokeWidth: 1),
+              ),
+              barTouchData: BarTouchData(enabled: false),
             ),
           ),
         ),
@@ -191,39 +274,187 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildBudgetsSummarySection(bool isArabic) {
-    final budgets = _report!.budgetsSummary;
-    if (budgets.isEmpty) {
-      return const SizedBox.shrink();
+  Widget _buildPaymentMethodTable(bool isArabic, CurrencyProvider currency) {
+    final incomeMap = _report!.incomeByMethod;
+    final expenseMap = _report!.expenseByMethod;
+    final allMethods = {...incomeMap.keys, ...expenseMap.keys}.toList();
+    allMethods.sort();
+    if (allMethods.isEmpty) return Container();
+    double totalIncome = 0;
+    double totalExpense = 0;
+    for (var method in allMethods) {
+      totalIncome += incomeMap[method] ?? 0;
+      totalExpense += expenseMap[method] ?? 0;
     }
+    final netTotal = totalIncome - totalExpense;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isArabic ? 'ملخص الميزانيات' : 'Budgets Summary',
+          isArabic
+              ? 'الدخل والمصروفات حسب طريقة الدفع'
+              : 'Income & Expense by Payment Method',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 20),
-        ...budgets.entries.map((entry) => Card(
-          margin: const EdgeInsets.symmetric(vertical: 6),
+        const SizedBox(height: 16),
+        Card(
           color: const Color(0xFF2A3A4A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            title: Text(entry.key, style: const TextStyle(color: Colors.white)),
-            trailing: Text(
-              '${(entry.value * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(color: Color(0xFFF5B042), fontWeight: FontWeight.bold),
-            ),
-            subtitle: LinearProgressIndicator(
-              value: entry.value,
-              backgroundColor: Colors.grey[800],
-              color: entry.value >= 1 ? Colors.red : const Color(0xFFF5B042),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        isArabic ? 'طريقة الدفع' : 'Method',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        isArabic ? 'الدخل' : 'Income',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        isArabic ? 'المصروفات' : 'Expense',
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        isArabic ? 'صافي' : 'Net',
+                        style: const TextStyle(
+                          color: Color(0xFFF5B042),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(color: Colors.white24, height: 24),
+                ...allMethods.map((method) {
+                  final inc = incomeMap[method] ?? 0;
+                  final exp = expenseMap[method] ?? 0;
+                  final net = inc - exp;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            _translate(method, isArabic),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            currency.format(inc, isArabic),
+                            style: const TextStyle(color: Colors.green),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            currency.format(exp, isArabic),
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            currency.format(net, isArabic),
+                            style: TextStyle(
+                              color: net >= 0 ? Colors.green : Colors.red,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                const Divider(color: Colors.white24, height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        isArabic ? 'الإجمالي' : 'Total',
+                        style: const TextStyle(
+                          color: Color(0xFFF5B042),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        currency.format(totalIncome, isArabic),
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        currency.format(totalExpense, isArabic),
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        currency.format(netTotal, isArabic),
+                        style: TextStyle(
+                          color: netTotal >= 0 ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        )),
+        ),
       ],
     );
   }

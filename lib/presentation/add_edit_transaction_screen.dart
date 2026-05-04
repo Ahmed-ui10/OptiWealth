@@ -69,19 +69,13 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _descController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadCategories() async {
     final cats = await CategoryRepository().getAllCategories();
-    if (mounted) {
-      setState(() => _categories = cats);
-    }
+    setState(() => _categories = cats);
   }
+
+  DateTime _nowWithoutMillis() =>
+      DateTime.now().toLocal().copyWith(millisecond: 0, microsecond: 0);
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate() || _categoryId == null) return;
@@ -91,7 +85,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       userId: widget.userId,
       transactionType: _isIncome,
       amount: double.parse(_amountController.text),
-      dateTime: widget.transaction?.dateTime ?? DateTime.now(),
+      dateTime: widget.transaction?.dateTime ?? _nowWithoutMillis(),
       description: _descController.text,
       paymentMethod: _paymentMethod,
       categoryId: _categoryId!,
@@ -101,7 +95,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     } else {
       await _service.updateTransaction(transaction);
     }
-    if (mounted) Navigator.pop(context, true);
+    Navigator.pop(context, true);
   }
 
   @override
@@ -115,6 +109,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       userId: widget.userId,
       title: title,
       showBackButton: true,
+      hideMenu: true,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Card(
@@ -181,12 +176,14 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
                     value: _categoryId,
                     dropdownColor: const Color(0xFF2A3A4A),
                     style: const TextStyle(color: Colors.white),
-                    items: _categories.map((c) {
-                      return DropdownMenuItem<int>(
-                        value: c.categoryId,
-                        child: Text(_translateTx(c.name, isArabic)),
-                      );
-                    }).toList(),
+                    items: _categories
+                        .map(
+                          (c) => DropdownMenuItem<int>(
+                            value: c.categoryId,
+                            child: Text(_translateTx(c.name, isArabic)),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (val) => setState(() => _categoryId = val),
                     decoration: InputDecoration(
                       labelText: isArabic ? 'التصنيف' : 'Category',

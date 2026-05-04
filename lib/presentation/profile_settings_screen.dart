@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../locale_provider.dart';
+import '../../currency_provider.dart';
 import '../../repositories/user_repository.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
@@ -21,6 +22,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final AuthService _auth = AuthService();
   User? _user;
   bool _loading = true;
+  final TextEditingController _rateController = TextEditingController();
 
   @override
   void initState() {
@@ -29,11 +31,54 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   }
 
   Future<void> _loadUser() async {
+    setState(() => _loading = true);
     final user = await _userRepo.getUserById(widget.userId);
+    if (user == null) {
+      if (mounted) {
+        final isArabic = Provider.of<LocaleProvider>(
+          context,
+          listen: false,
+        ).isArabic;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF2A3A4A),
+            title: Text(
+              isArabic ? 'انتهت الجلسة' : 'Session Expired',
+              style: const TextStyle(color: Colors.white),
+            ),
+            content: Text(
+              isArabic ? 'الرجاء تسجيل الدخول مرة أخرى' : 'Please log in again',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _auth.clearSavedUserId();
+                  if (mounted)
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => LoginScreen()),
+                    );
+                },
+                child: Text(
+                  isArabic ? 'حسناً' : 'OK',
+                  style: const TextStyle(color: Color(0xFFF5B042)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
     setState(() {
       _user = user;
       _loading = false;
     });
+    _rateController.clear();
   }
 
   Future<void> _updateLanguage(String newLang) async {
@@ -51,27 +96,31 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> _logout() async {
     await _auth.logout();
-    if (mounted) {
+    if (mounted)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => LoginScreen()),
       );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    final currencyProvider = Provider.of<CurrencyProvider>(context);
+
     if (_loading) {
       return Scaffold(
         backgroundColor: const Color(0xFF0A0E27),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+    if (_user == null) return const SizedBox.shrink();
+
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'الملف الشخصي والإعدادات' : 'Profile & Settings',
-      showBackButton: true,
+      showBackButton: false,
+      hideMenu: false,
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Card(
@@ -79,7 +128,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -106,6 +155,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                 ),
                 const Divider(color: Colors.white24),
+                // Currency selection
                 ListTile(
                   title: Text(
                     isArabic ? 'العملة' : 'Currency',
@@ -113,8 +163,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                   trailing: DropdownButton<String>(
                     dropdownColor: const Color(0xFF2A3A4A),
-                    value: _user!.currency,
-                    items: ['USD', 'EGP', 'EUR']
+                    value: currencyProvider.targetCurrency,
+                    items: ['EGP', 'USD', 'EUR']
                         .map(
                           (c) => DropdownMenuItem(
                             value: c,
@@ -126,12 +176,64 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         )
                         .toList(),
                     onChanged: (v) async {
-                      _user!.currency = v!;
-                      await _userRepo.updateUser(_user!);
-                      setState(() {});
+                      if (v != null) {
+                        currencyProvider.setTargetCurrency(v);
+                        _user!.currency = v;
+                        await _userRepo.updateUser(_user!);
+                        _rateController.clear(); 
+                        setState(() {});
+                      }
                     },
                   ),
                 ),
+                if (currencyProvider.targetCurrency != 'EGP') ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Text(
+                          isArabic
+                              ? '1 ${currencyProvider.targetCurrency} = ? جنيه'
+                              : '1 ${currencyProvider.targetCurrency} = ? EGP',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _rateController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: isArabic ? 'مثال: 35' : 'e.g. 35',
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Colors.white24,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFF5B042),
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              final num = double.tryParse(value);
+                              if (num != null && num > 0) {
+                                currencyProvider.setExchangeRateFromUserInput(
+                                  currencyProvider.targetCurrency,
+                                  num,
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const Divider(color: Colors.white24),
                 ListTile(
                   title: Text(

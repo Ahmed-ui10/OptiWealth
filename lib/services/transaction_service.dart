@@ -1,9 +1,12 @@
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
+import '../repositories/budget_repository.dart';
 import '../repositories/account_repository.dart';
 import '../repositories/category_repository.dart';
+import '../repositories/goal_repository.dart';
 import 'budget_service.dart';
 import 'goal_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TransactionService {
   final TransactionRepository _transactionRepo = TransactionRepository();
@@ -11,6 +14,12 @@ class TransactionService {
   final CategoryRepository _categoryRepo = CategoryRepository();
   final BudgetService _budgetService = BudgetService();
   final GoalService _goalService = GoalService();
+
+  Future<bool> _isArabic() async {
+    final prefs = await SharedPreferences.getInstance();
+    final langCode = prefs.getString('language_code') ?? 'en';
+    return langCode == 'ar';
+  }
 
   Future<void> addTransaction(Transaction transaction) async {
     if (!transaction.validate()) throw Exception('Invalid transaction');
@@ -30,12 +39,19 @@ class TransactionService {
       transaction.categoryId,
     );
     final categoryName = category?.name ?? "Unknown Category";
+    final isArabic = await _isArabic();
+    final amountToTrack = transaction.transactionType
+        ? -transaction.amount
+        : transaction.amount;
+    print(
+      '📊 TransactionService.add: catId=${transaction.categoryId}, amount=$amountToTrack (${transaction.transactionType ? "Income" : "Expense"})',
+    );
     await _budgetService.updateBudgetTracking(
       transaction.userId,
       transaction.categoryId,
-      transaction.amount,
-      transaction.transactionType,
+      amountToTrack,
       categoryName,
+      isArabic,
     );
 
     if (transaction.transactionType) {
@@ -69,27 +85,31 @@ class TransactionService {
         }
         await _accountRepo.updateAccount(account);
       }
-
+      final isArabic = await _isArabic();
       final oldCategory = await _categoryRepo.getCategoryById(oldTx.categoryId);
+      final oldAmountToTrack = oldTx.transactionType
+          ? -oldTx.amount
+          : oldTx.amount;
       await _budgetService.updateBudgetTracking(
         transaction.userId,
         oldTx.categoryId,
-        oldTx.amount,
-        oldTx.transactionType,
+        -oldAmountToTrack,
         oldCategory?.name ?? "Unknown",
+        isArabic,
       );
-
       final newCategory = await _categoryRepo.getCategoryById(
         transaction.categoryId,
       );
+      final newAmountToTrack = transaction.transactionType
+          ? -transaction.amount
+          : transaction.amount;
       await _budgetService.updateBudgetTracking(
         transaction.userId,
         transaction.categoryId,
-        transaction.amount,
-        transaction.transactionType,
+        newAmountToTrack,
         newCategory?.name ?? "Unknown",
+        isArabic,
       );
-
       if (oldTx.transactionType) {
         await _goalService.updateAllGoalsProgress(
           transaction.userId,
@@ -122,17 +142,20 @@ class TransactionService {
       await _accountRepo.updateAccount(account);
     }
 
+    final isArabic = await _isArabic();
     final category = await _categoryRepo.getCategoryById(
       transaction.categoryId,
     );
+    final amountToTrack = transaction.transactionType
+        ? -transaction.amount
+        : transaction.amount;
     await _budgetService.updateBudgetTracking(
       transaction.userId,
       transaction.categoryId,
-      transaction.amount,
-      transaction.transactionType,
+      -amountToTrack,
       category?.name ?? "Unknown",
+      isArabic,
     );
-
     if (transaction.transactionType) {
       await _goalService.updateAllGoalsProgress(
         transaction.userId,

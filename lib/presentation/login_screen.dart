@@ -177,7 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                         const SizedBox(height: 20),
-                        // النص المصحح لمنع الخروج (overflow)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Wrap(

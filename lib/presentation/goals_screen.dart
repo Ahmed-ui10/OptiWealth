@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/goal_service.dart';
 import '../../locale_provider.dart';
+import '../../currency_provider.dart';
 import '../../models/financial_goal_model.dart';
 import 'widgets/custom_scaffold.dart';
 import 'add_edit_goal_screen.dart';
@@ -41,10 +42,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    final currency = Provider.of<CurrencyProvider>(context);
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'الأهداف المالية' : 'Financial Goals',
-      showBackButton: true,
+      showBackButton: false,
+      hideMenu: false,
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFF5B042),
         child: const Icon(Icons.add, color: Colors.black),
@@ -90,9 +93,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isArabic
-                                ? '${goal.currentAmount} ج.م / ${goal.targetAmount} ج.م'
-                                : '${goal.currentAmount} E.P / ${goal.targetAmount} E.P',
+                            '${currency.format(goal.currentAmount, isArabic)} / ${currency.format(goal.targetAmount, isArabic)}',
                             style: const TextStyle(color: Colors.white70),
                           ),
                           Text(

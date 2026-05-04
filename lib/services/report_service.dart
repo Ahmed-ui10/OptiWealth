@@ -1,14 +1,11 @@
 import '../models/financial_report_model.dart';
 import '../models/category_model.dart';
-import '../models/budget_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../repositories/category_repository.dart';
-import '../repositories/budget_repository.dart';
 
 class ReportService {
   final TransactionRepository _transactionRepo = TransactionRepository();
   final CategoryRepository _categoryRepo = CategoryRepository();
-  final BudgetRepository _budgetRepo = BudgetRepository();
 
   Future<FinancialReport> generateReport(
     int userId,
@@ -26,13 +23,19 @@ class ReportService {
 
     final categories = await _categoryRepo.getAllCategories();
     final Map<String, double> categoryTotals = {};
+    final Map<String, double> incomeByMethod = {};
+    final Map<String, double> expenseByMethod = {};
     double totalIncome = 0, totalExpense = 0;
 
     for (var t in transactions) {
       if (t.transactionType) {
         totalIncome += t.amount;
+        incomeByMethod[t.paymentMethod] =
+            (incomeByMethod[t.paymentMethod] ?? 0) + t.amount;
       } else {
         totalExpense += t.amount;
+        expenseByMethod[t.paymentMethod] =
+            (expenseByMethod[t.paymentMethod] ?? 0) + t.amount;
         final cat = categories.firstWhere(
           (c) => c.categoryId == t.categoryId,
           orElse: () =>
@@ -42,26 +45,13 @@ class ReportService {
       }
     }
 
-    final budgets = await _budgetRepo.getBudgetsByUser(
-      userId,
-      activeOnly: true,
-    );
-    final Map<String, double> budgetsSummary = {};
-    for (var budget in budgets) {
-      final cat = categories.firstWhere(
-        (c) => c.categoryId == budget.categoryId,
-        orElse: () =>
-            Category(categoryId: -1, name: 'Unknown', type: 'expense'),
-      );
-      budgetsSummary[cat.name] = budget.spentPercentage;
-    }
-
     return FinancialReport(
       reportPeriodStart: start,
       reportPeriodEnd: end,
       categoryTotals: categoryTotals,
       incomeVsExpenseData: {'income': totalIncome, 'expense': totalExpense},
-      budgetsSummary: budgetsSummary,
+      incomeByMethod: incomeByMethod,
+      expenseByMethod: expenseByMethod,
     );
   }
 }

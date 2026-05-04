@@ -11,14 +11,14 @@ class DashboardFacade {
 
   Future<Map<String, dynamic>> getDashboardData(int userId) async {
     final balance = await _transactionService.getCurrentBalance(userId);
-    final recent = await _transactionService.getRecentTransactions(userId);
+    final allTransactions = await _transactionService.getUserTransactions(userId);
     final budgets = await _budgetService.getActiveBudgets(userId);
     final goals = await _goalService.getUserGoals(userId);
     final user = await _userRepo.getUserById(userId);
     final currency = user?.currency ?? 'EGP';
     return {
       'balance': balance,
-      'recent': recent,
+      'recent': allTransactions,  
       'budgets': budgets,
       'goals': goals,
       'currency': currency,

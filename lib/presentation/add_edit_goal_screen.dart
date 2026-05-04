@@ -27,6 +27,7 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
       userId: widget.userId,
       title: isArabic ? 'إضافة هدف مالي' : 'Add Financial Goal',
       showBackButton: true,
+      hideMenu: true,
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Card(
@@ -85,8 +86,8 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
                   ListTile(
                     title: Text(
                       isArabic
-                          ? 'آخر موعد: ${_deadline.toLocal()}'
-                          : 'Deadline: ${_deadline.toLocal()}',
+                          ? 'آخر موعد: ${_deadline.toLocal().toString().split(' ')[0]}'
+                          : 'Deadline: ${_deadline.toLocal().toString().split(' ')[0]}',
                       style: const TextStyle(color: Colors.white70),
                     ),
                     trailing: IconButton(
@@ -103,7 +104,15 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
                             const Duration(days: 365 * 5),
                           ),
                         );
-                        if (date != null) setState(() => _deadline = date);
+                        if (date != null) {
+                          setState(
+                            () => _deadline = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),
@@ -115,7 +124,6 @@ class _AddEditGoalScreenState extends State<AddEditGoalScreen> {
                             if (!_formKey.currentState!.validate()) return;
                             setState(() => _loading = true);
                             final goal = FinancialGoal(
-                              id: 0,
                               userId: widget.userId,
                               goalName: _nameController.text,
                               targetAmount: double.parse(

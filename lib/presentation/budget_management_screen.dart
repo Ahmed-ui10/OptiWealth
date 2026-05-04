@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/budget_service.dart';
 import '../../repositories/category_repository.dart';
 import '../../locale_provider.dart';
+import '../../currency_provider.dart';
 import '../../models/budget_model.dart';
 import 'widgets/custom_scaffold.dart';
 import 'add_edit_budget_screen.dart';
@@ -110,10 +111,12 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    final currency = Provider.of<CurrencyProvider>(context);
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'الميزانيات' : 'Budgets',
-      showBackButton: true,
+      showBackButton: false,
+      hideMenu: false,
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFF5B042),
         child: const Icon(Icons.add, color: Colors.black),
@@ -142,6 +145,7 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen> {
                       _categoryNames[budget.categoryId] ??
                       'Category ${budget.categoryId}';
                   final displayName = _translateBM(originalName, isArabic);
+                  final remaining = budget.budgetAmount - budget.spentAmount;
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     color: const Color(0xFF2A3A4A),
@@ -157,7 +161,7 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           LinearProgressIndicator(
-                            value: budget.spentPercentage,
+                            value: budget.spentPercentage.clamp(0.0, 1.0),
                             backgroundColor: Colors.grey[800],
                             color: budget.spentPercentage >= 1.0
                                 ? Colors.red
@@ -165,10 +169,20 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isArabic
-                                ? '${budget.spentAmount} ج.م / ${budget.budgetAmount} ج.م'
-                                : '${budget.spentAmount} E.P / ${budget.budgetAmount} E.P',
+                            '${currency.format(budget.spentAmount, isArabic)} / ${currency.format(budget.budgetAmount, isArabic)}',
                             style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isArabic
+                                ? 'المتبقي: ${currency.format(remaining, isArabic)}'
+                                : 'Remaining: ${currency.format(remaining, isArabic)}',
+                            style: TextStyle(
+                              color: remaining < 0
+                                  ? Colors.red
+                                  : Colors.white70,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),

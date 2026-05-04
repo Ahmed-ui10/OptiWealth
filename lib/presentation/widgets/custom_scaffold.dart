@@ -14,6 +14,7 @@ class CustomScaffold extends StatelessWidget {
   final String title;
   final int userId;
   final bool showBackButton;
+  final bool hideMenu;
   final Widget? floatingActionButton;
   final FloatingActionButtonLocation? floatingActionButtonLocation;
 
@@ -23,6 +24,7 @@ class CustomScaffold extends StatelessWidget {
     required this.title,
     required this.userId,
     this.showBackButton = false,
+    this.hideMenu = false,
     this.floatingActionButton,
     this.floatingActionButtonLocation,
   }) : super(key: key);
@@ -62,8 +64,10 @@ class CustomScaffold extends StatelessWidget {
           ),
         ),
       ),
-      drawer: isArabic ? null : _buildDrawer(context, isArabic),
-      endDrawer: isArabic ? _buildDrawer(context, isArabic) : null,
+      drawer: (!isArabic && !hideMenu) ? _buildDrawer(context, isArabic) : null,
+      endDrawer: (isArabic && !hideMenu)
+          ? _buildDrawer(context, isArabic)
+          : null,
       body: Container(
         height: double.infinity,
         decoration: const BoxDecoration(
@@ -86,16 +90,14 @@ class CustomScaffold extends StatelessWidget {
   }
 
   Widget? _buildLeading(BuildContext context, bool isArabic) {
-    if (showBackButton) {
-      return IconButton(
-        icon: Icon(
-          isArabic ? Icons.arrow_forward : Icons.arrow_back,
-          color: Colors.white,
-        ),
-        onPressed: () => Navigator.pop(context),
-      );
-    } else {
-      if (!isArabic) {
+    if (!isArabic) {
+      if (showBackButton) {
+        return IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        );
+      }
+      if (!hideMenu) {
         return Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
@@ -103,23 +105,32 @@ class CustomScaffold extends StatelessWidget {
           ),
         );
       }
-      return null;
     }
+    return null;
   }
 
   List<Widget> _buildActions(BuildContext context, bool isArabic) {
-    List<Widget> actions = [];
-    if (isArabic && !showBackButton) {
-      actions.add(
-        Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+    if (isArabic) {
+      if (showBackButton) {
+        return [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
-        ),
-      );
+        ];
+      }
+      if (!hideMenu) {
+        return [
+          Builder(
+            builder: (ctx) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+            ),
+          ),
+        ];
+      }
     }
-    return actions;
+    return [];
   }
 
   Widget _buildDrawer(BuildContext context, bool isArabic) {

@@ -39,7 +39,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'الإشعارات' : 'Notifications',
-      showBackButton: true,
+      showBackButton: false,
+      hideMenu: false,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/transaction_service.dart';
 import '../../locale_provider.dart';
+import '../../currency_provider.dart';
 import '../../models/transaction_model.dart';
 import 'widgets/custom_scaffold.dart';
 import 'add_edit_transaction_screen.dart';
@@ -79,16 +80,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    final currency = Provider.of<CurrencyProvider>(context);
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'المعاملات' : 'Transactions',
-      showBackButton: true,
+      showBackButton: false,
+      hideMenu: false,
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFF5B042),
         child: const Icon(Icons.add, color: Colors.black),
@@ -139,8 +142,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       children: [
                         Text(
                           _transactions[i].transactionType
-                              ? '+${_transactions[i].amount}'
-                              : '-${_transactions[i].amount}',
+                              ? '+${currency.format(_transactions[i].amount, isArabic)}'
+                              : '-${currency.format(_transactions[i].amount, isArabic)}',
                           style: TextStyle(
                             color: _transactions[i].transactionType
                                 ? Colors.green

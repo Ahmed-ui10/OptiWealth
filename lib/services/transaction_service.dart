@@ -23,6 +23,7 @@ class TransactionService {
 
   Future<void> addTransaction(Transaction transaction) async {
     if (!transaction.validate()) throw Exception('Invalid transaction');
+
     await _transactionRepo.createTransaction(transaction);
 
     final account = await _accountRepo.getAccountByUserId(transaction.userId);
@@ -40,18 +41,18 @@ class TransactionService {
     );
     final categoryName = category?.name ?? "Unknown Category";
     final isArabic = await _isArabic();
-    final amountToTrack = transaction.transactionType
+
+    final amountForBudget = transaction.transactionType
         ? -transaction.amount
         : transaction.amount;
-    print(
-      '📊 TransactionService.add: catId=${transaction.categoryId}, amount=$amountToTrack (${transaction.transactionType ? "Income" : "Expense"})',
-    );
+
     await _budgetService.updateBudgetTracking(
       transaction.userId,
       transaction.categoryId,
-      amountToTrack,
+      amountForBudget,
       categoryName,
       isArabic,
+      transaction.dateTime,
     );
 
     if (transaction.transactionType) {
@@ -63,66 +64,62 @@ class TransactionService {
   }
 
   Future<void> updateTransaction(Transaction transaction) async {
-    final oldTxList = await _transactionRepo.getTransactionsByUser(
+    final oldTx = await _transactionRepo.getTransactionById(transaction.id!);
+    if (oldTx == null) throw Exception('Transaction not found');
+
+    final account = await _accountRepo.getAccountByUserId(transaction.userId);
+    if (account == null) throw Exception('Account not found');
+
+    final oldCategory = await _categoryRepo.getCategoryById(oldTx.categoryId);
+    final isArabic = await _isArabic();
+    double oldBudgetEffect = oldTx.transactionType
+        ? -oldTx.amount
+        : oldTx.amount;
+    await _budgetService.updateBudgetTracking(
       transaction.userId,
-      startDate: transaction.dateTime,
-      endDate: transaction.dateTime,
+      oldTx.categoryId,
+      -oldBudgetEffect,
+      oldCategory?.name ?? "Unknown",
+      isArabic,
+      oldTx.dateTime,
     );
-    Transaction? oldTx;
-    if (oldTxList.isNotEmpty) oldTx = oldTxList.first;
-    if (oldTx != null) {
-      final account = await _accountRepo.getAccountByUserId(transaction.userId);
-      if (account != null) {
-        if (oldTx.transactionType) {
-          account.withdraw(oldTx.amount);
-        } else {
-          account.deposit(oldTx.amount);
-        }
-        if (transaction.transactionType) {
-          account.deposit(transaction.amount);
-        } else {
-          account.withdraw(transaction.amount);
-        }
-        await _accountRepo.updateAccount(account);
-      }
-      final isArabic = await _isArabic();
-      final oldCategory = await _categoryRepo.getCategoryById(oldTx.categoryId);
-      final oldAmountToTrack = oldTx.transactionType
-          ? -oldTx.amount
-          : oldTx.amount;
-      await _budgetService.updateBudgetTracking(
+
+    if (oldTx.transactionType) {
+      account.withdraw(oldTx.amount);
+      await _goalService.updateAllGoalsProgress(
         transaction.userId,
-        oldTx.categoryId,
-        -oldAmountToTrack,
-        oldCategory?.name ?? "Unknown",
-        isArabic,
+        -oldTx.amount,
       );
-      final newCategory = await _categoryRepo.getCategoryById(
-        transaction.categoryId,
-      );
-      final newAmountToTrack = transaction.transactionType
-          ? -transaction.amount
-          : transaction.amount;
-      await _budgetService.updateBudgetTracking(
-        transaction.userId,
-        transaction.categoryId,
-        newAmountToTrack,
-        newCategory?.name ?? "Unknown",
-        isArabic,
-      );
-      if (oldTx.transactionType) {
-        await _goalService.updateAllGoalsProgress(
-          transaction.userId,
-          -oldTx.amount,
-        );
-      }
-      if (transaction.transactionType) {
-        await _goalService.updateAllGoalsProgress(
-          transaction.userId,
-          transaction.amount,
-        );
-      }
+    } else {
+      account.deposit(oldTx.amount);
     }
+
+    if (transaction.transactionType) {
+      account.deposit(transaction.amount);
+      await _goalService.updateAllGoalsProgress(
+        transaction.userId,
+        transaction.amount,
+      );
+    } else {
+      account.withdraw(transaction.amount);
+    }
+    await _accountRepo.updateAccount(account);
+
+    final newCategory = await _categoryRepo.getCategoryById(
+      transaction.categoryId,
+    );
+    double newBudgetEffect = transaction.transactionType
+        ? -transaction.amount
+        : transaction.amount;
+    await _budgetService.updateBudgetTracking(
+      transaction.userId,
+      transaction.categoryId,
+      newBudgetEffect,
+      newCategory?.name ?? "Unknown",
+      isArabic,
+      transaction.dateTime,
+    );
+
     await _transactionRepo.updateTransaction(transaction);
   }
 
@@ -142,20 +139,23 @@ class TransactionService {
       await _accountRepo.updateAccount(account);
     }
 
-    final isArabic = await _isArabic();
     final category = await _categoryRepo.getCategoryById(
       transaction.categoryId,
     );
-    final amountToTrack = transaction.transactionType
+    final isArabic = await _isArabic();
+
+    double budgetEffect = transaction.transactionType
         ? -transaction.amount
         : transaction.amount;
     await _budgetService.updateBudgetTracking(
       transaction.userId,
       transaction.categoryId,
-      -amountToTrack,
+      -budgetEffect,
       category?.name ?? "Unknown",
       isArabic,
+      transaction.dateTime,
     );
+
     if (transaction.transactionType) {
       await _goalService.updateAllGoalsProgress(
         transaction.userId,

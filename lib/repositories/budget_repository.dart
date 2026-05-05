@@ -28,6 +28,17 @@ class BudgetRepository {
     );
   }
 
+  Future<Budget?> getBudgetById(int budgetId) async {
+    final db = await dbHelper.db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'budgets',
+      where: 'budgetId = ?',
+      whereArgs: [budgetId],
+    );
+    if (maps.isNotEmpty) return Budget.fromMap(maps.first);
+    return null;
+  }
+
   Future<List<Budget>> getBudgetsByUser(
     int userId, {
     bool activeOnly = false,
@@ -37,8 +48,6 @@ class BudgetRepository {
     List<dynamic> args = [userId];
     if (activeOnly) {
       final now = DateTime.now();
-      final todayDateOnly = DateTime(now.year, now.month, now.day);
-
       final nowIso = now.toIso8601String();
       where += ' AND startDate <= ? AND endDate >= ?';
       args.addAll([nowIso, nowIso]);
@@ -47,6 +56,7 @@ class BudgetRepository {
       'budgets',
       where: where,
       whereArgs: args,
+      orderBy: 'startDate ASC',
     );
     return maps.map((m) => Budget.fromMap(m)).toList();
   }

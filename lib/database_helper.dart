@@ -18,9 +18,9 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'budgeting_app.db');
     return await openDatabase(
       path,
-      version: 2,          
+      version: 5, 
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade, 
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -30,20 +30,16 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-
-    await _dropTables(db);
-    await _createTables(db);
-    await _insertDefaultCategories(db);
-  }
-
-  Future<void> _dropTables(Database db) async {
-    await db.execute('DROP TABLE IF EXISTS notifications');
-    await db.execute('DROP TABLE IF EXISTS goals');
-    await db.execute('DROP TABLE IF EXISTS budgets');
-    await db.execute('DROP TABLE IF EXISTS transactions');
-    await db.execute('DROP TABLE IF EXISTS categories');
-    await db.execute('DROP TABLE IF EXISTS accounts');
-    await db.execute('DROP TABLE IF EXISTS users');
+    if (oldVersion < 4) {
+      try {
+        await db.execute('ALTER TABLE budgets ADD COLUMN createdAt TEXT');
+        await db.execute('UPDATE budgets SET createdAt = startDate WHERE createdAt IS NULL');
+      } catch (e) {
+        print('Error upgrading to version 4: $e');
+      }
+    }
+    if (oldVersion < 5) {
+    }
   }
 
   Future<void> _createTables(Database db) async {
@@ -103,6 +99,7 @@ class DatabaseHelper {
         alertThreshold INTEGER NOT NULL,
         spentAmount REAL NOT NULL,
         budgetStatus TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
         FOREIGN KEY (categoryId) REFERENCES categories (categoryId)
       )

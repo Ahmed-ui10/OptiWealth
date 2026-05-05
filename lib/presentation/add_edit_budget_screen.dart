@@ -84,15 +84,13 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       startDate: start,
       endDate: end,
     );
-    double net = 0.0;
+    double spent = 0.0;
     for (var tx in transactions) {
       if (!tx.transactionType) {
-        net += tx.amount;
-      } else {
-        net -= tx.amount;
+        spent += tx.amount;
       }
     }
-    return net;
+    return spent;
   }
 
   Future<void> _save() async {
@@ -102,8 +100,10 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     final startDate = _startOfMonth(now);
     final endDate = _endOfMonth(now);
 
-    double initialSpent = widget.budget?.spentAmount ?? 0.0;
+    double initialSpent;
     if (widget.budget == null) {
+      initialSpent = 0.0;
+    } else {
       initialSpent = await _calculateExistingSpentAmount(
         widget.userId,
         _categoryId!,
@@ -122,7 +122,9 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       alertThreshold: _threshold,
       spentAmount: initialSpent,
       budgetStatus: widget.budget?.budgetStatus ?? 'On Track',
+      createdAt: widget.budget?.createdAt ?? now,
     );
+
     if (budget.spentAmount >= budget.budgetAmount) {
       budget.budgetStatus = 'Exceeded';
     } else if (budget.spentAmount >=

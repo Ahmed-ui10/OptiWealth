@@ -3,10 +3,18 @@ import '../repositories/user_repository.dart';
 import '../repositories/account_repository.dart';
 import '../models/account_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 class AuthService {
   final UserRepository _userRepo = UserRepository();
   final AccountRepository _accountRepo = AccountRepository();
+
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
 
   Future<void> _saveUserId(int userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,10 +41,13 @@ class AuthService {
   Future<User?> register(String fullName, String email, String password) async {
     final existing = await _userRepo.getUserByEmail(email);
     if (existing != null) return null;
+
+    final passwordHash = _hashPassword(password);
+
     final user = User(
       fullName: fullName,
       email: email,
-      passwordHash: password,
+      passwordHash: passwordHash,
       currency: 'EGP',
       language: 'ar',
       notificationsEnabled: true,
@@ -50,7 +61,7 @@ class AuthService {
 
   Future<User?> login(String email, String password) async {
     final user = await _userRepo.getUserByEmail(email);
-    if (user != null && user.passwordHash == password) {
+    if (user != null && user.passwordHash == _hashPassword(password)) {
       await _saveUserId(user.id!);
       return user;
     }

@@ -8,6 +8,7 @@ class Budget {
   int alertThreshold;
   double spentAmount;
   String budgetStatus;
+  DateTime createdAt;
 
   Budget({
     this.budgetId,
@@ -19,6 +20,7 @@ class Budget {
     required this.alertThreshold,
     required this.spentAmount,
     required this.budgetStatus,
+    required this.createdAt,
   });
 
   double get spentPercentage =>
@@ -26,11 +28,7 @@ class Budget {
   double get remaining => budgetAmount - spentAmount;
 
   void addExpense(double amount) {
-    print(
-      '📉 addExpense: old spentAmount = $spentAmount, amount to add = $amount',
-    );
     spentAmount += amount;
-    print('📈 new spentAmount = $spentAmount');
     if (spentAmount >= budgetAmount) {
       budgetStatus = 'Exceeded';
     } else if (spentAmount >= budgetAmount * (alertThreshold / 100)) {
@@ -50,8 +48,9 @@ class Budget {
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'alertThreshold': alertThreshold,
-      'spentAmount': spentAmount, 
+      'spentAmount': spentAmount,
       'budgetStatus': budgetStatus,
+      'createdAt': createdAt.toIso8601String(),
     };
     if (budgetId != null && budgetId != 0) {
       map['budgetId'] = budgetId;
@@ -59,15 +58,25 @@ class Budget {
     return map;
   }
 
-  factory Budget.fromMap(Map<String, dynamic> map) => Budget(
-    budgetId: map['budgetId'],
-    userId: map['userId'],
-    categoryId: map['categoryId'],
-    budgetAmount: (map['budgetAmount'] as num).toDouble(),
-    startDate: DateTime.parse(map['startDate']),
-    endDate: DateTime.parse(map['endDate']),
-    alertThreshold: map['alertThreshold'],
-    spentAmount: (map['spentAmount'] as num).toDouble(),
-    budgetStatus: map['budgetStatus'],
-  );
+  factory Budget.fromMap(Map<String, dynamic> map) {
+    String? createdAtStr = map['createdAt'];
+    DateTime createdAtDate;
+    if (createdAtStr == null) {
+      createdAtDate = DateTime.parse(map['startDate']);
+    } else {
+      createdAtDate = DateTime.parse(createdAtStr);
+    }
+    return Budget(
+      budgetId: map['budgetId'],
+      userId: map['userId'],
+      categoryId: map['categoryId'],
+      budgetAmount: (map['budgetAmount'] as num).toDouble(),
+      startDate: DateTime.parse(map['startDate']),
+      endDate: DateTime.parse(map['endDate']),
+      alertThreshold: map['alertThreshold'],
+      spentAmount: (map['spentAmount'] as num).toDouble(),
+      budgetStatus: map['budgetStatus'],
+      createdAt: createdAtDate,
+    );
+  }
 }

@@ -6,6 +6,7 @@ import '../../locale_provider.dart';
 import '../../currency_provider.dart';
 import 'widgets/custom_scaffold.dart';
 
+// English to Arabic translation mapping for dashboard categories
 final Map<String, String> _enToAr = {
   'Food': 'طعام',
   'Transport': 'مواصلات',
@@ -14,6 +15,8 @@ final Map<String, String> _enToAr = {
   'Salary': 'مرتب',
   'Gift': 'هدية',
 };
+
+// Arabic to English translation mapping for dashboard categories
 final Map<String, String> _arToEn = {
   'طعام': 'Food',
   'مواصلات': 'Transport',
@@ -23,11 +26,13 @@ final Map<String, String> _arToEn = {
   'هدية': 'Gift',
 };
 
+// Helper function to translate category names based on current language
 String _translateCategory(String name, bool isArabic) {
   if (isArabic) return _enToAr[name] ?? name;
   return _arToEn[name] ?? name;
 }
 
+// Main dashboard screen showing balance, recent transactions, and active budgets
 class DashboardScreen extends StatefulWidget {
   final int userId;
   const DashboardScreen({Key? key, required this.userId}) : super(key: key);
@@ -38,26 +43,27 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final DashboardFacade _facade = DashboardFacade();
-  Map<String, dynamic> _data = {};
-  Map<int, String> _categoryNames = {};
-  bool _loading = true;
+  Map<String, dynamic> _data = {}; // Dashboard data from facade
+  Map<int, String> _categoryNames = {}; // Cache category IDs to names
+  bool _loading = true; // Loading state for data fetch
 
-  // State variables to show/hide all items
+  // State variables to show/hide all items in lists
   bool _showAllTransactions = false;
   bool _showAllBudgets = false;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData(); // Load dashboard data when screen initializes
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadData();
+    _loadData(); // Reload data when dependencies change (e.g., currency/locale)
   }
 
+  // Load dashboard data and category names
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() => _loading = true);
@@ -74,6 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _categoryNames = names;
           _loading = false;
         });
+        // Update currency provider with user's preferred currency
         final currency = _data['currency'] as String;
         Provider.of<CurrencyProvider>(
           context,
@@ -85,11 +92,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  // Format DateTime to readable string (YYYY-MM-DD HH:MM:SS)
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
   }
 
+  // Show dialog with detailed transaction information
   void _showTransactionDetails(
     dynamic t,
     bool isArabic,
@@ -147,6 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Show dialog with detailed budget information
   void _showBudgetDetails(dynamic b, bool isArabic, CurrencyProvider currency) {
     final originalName =
         _categoryNames[b.categoryId] ?? 'Category ${b.categoryId}';
@@ -207,6 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Helper widget to display a labeled row of details
   Widget _detailRow(
     String label,
     String value, {
@@ -237,6 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final allTransactions = (_data['recent'] as List?) ?? [];
     final allBudgets = (_data['budgets'] as List?) ?? [];
 
+    // Limit displayed items based on show all/hide state
     final displayedTransactions = _showAllTransactions
         ? allTransactions
         : allTransactions.take(5).toList();
@@ -252,7 +264,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadData,
+              onRefresh: _loadData, // Pull-to-refresh functionality
               color: const Color(0xFFF5B042),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -261,7 +273,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     _buildBalanceCard(balance, isArabic, currency),
                     const SizedBox(height: 20),
-                    // Transactions section
+                    // Transactions section header with View All / Show Less button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -289,6 +301,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    // List of recent transactions
                     ...displayedTransactions.map(
                       (t) => _buildTransactionTile(t, isArabic, currency),
                     ),
@@ -303,7 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     const SizedBox(height: 16),
-                    // Budgets section
+                    // Budgets section header with View All / Show Less button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -331,6 +344,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    // List of active budgets
                     ...displayedBudgets.map(
                       (b) => _buildBudgetCard(b, isArabic, currency),
                     ),
@@ -353,6 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Card displaying total balance with gradient background
   Widget _buildBalanceCard(
     double balance,
     bool isArabic,
@@ -362,7 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFF5B042), Color(0xFFF39C12)],
+          colors: [Color(0xFFF5B042), Color(0xFFF39C12)], // Orange gradient
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -394,6 +409,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Tile widget for displaying a transaction (tap to see details)
   Widget _buildTransactionTile(
     dynamic t,
     bool isArabic,
@@ -408,7 +424,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListTile(
           leading: Icon(
             t.transactionType ? Icons.arrow_upward : Icons.arrow_downward,
-            color: t.transactionType ? Colors.green : Colors.red,
+            color: t.transactionType ? Colors.green : Colors.red, // Green for income, red for expense
           ),
           title: Text(
             t.description,
@@ -429,6 +445,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Card widget for displaying a budget with progress bar (tap to see details)
   Widget _buildBudgetCard(dynamic b, bool isArabic, CurrencyProvider currency) {
     final originalName =
         _categoryNames[b.categoryId] ?? 'Category ${b.categoryId}';
@@ -462,14 +479,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 6),
+              // Progress bar showing spent percentage vs budget
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: b.spentPercentage.clamp(0.0, 1.0),
                   backgroundColor: Colors.grey[800],
                   color: b.spentPercentage >= 1
-                      ? Colors.red
-                      : const Color(0xFFF5B042),
+                      ? Colors.red // Red when exceeded
+                      : const Color(0xFFF5B042), // Orange when within limit
                   minHeight: 8,
                 ),
               ),

@@ -4,32 +4,37 @@ import '../../services/auth_service.dart';
 import '../../locale_provider.dart';
 import 'login_screen.dart';
 
+// Signup screen for new user registration
 class SignupScreen extends StatefulWidget {
   @override
   _SignupScreenState createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
-  final AuthService _auth = AuthService();
-  bool _loading = false;
+  final _formKey = GlobalKey<FormState>(); // Form validation key
+  final _nameController = TextEditingController(); // Full name input
+  final _emailController = TextEditingController(); // Email input
+  final _passwordController = TextEditingController(); // Password input
+  final _confirmController = TextEditingController(); // Confirm password input
+  final AuthService _auth = AuthService(); // Authentication service
+  bool _loading = false; // Loading state for registration
 
+  // Helper method to show error snackbar
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  // Email validation regex pattern
   static final RegExp _emailRegex = RegExp(
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
   );
 
+  // Password validation regex pattern (min 8 chars, at least one letter, one number, one special char)
   static final RegExp _passwordRegex = RegExp(
     r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$',
   );
 
+  // Validate email format and presence
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       final isArabic = Provider.of<LocaleProvider>(
@@ -50,6 +55,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return null;
   }
 
+  // Validate password strength
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       final isArabic = Provider.of<LocaleProvider>(
@@ -70,6 +76,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return null;
   }
 
+  // Validate that password and confirm password match
   String? _validateConfirm(String? value) {
     if (value != _passwordController.text) {
       final isArabic = Provider.of<LocaleProvider>(
@@ -81,8 +88,9 @@ class _SignupScreenState extends State<SignupScreen> {
     return null;
   }
 
+  // Handle user registration
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return; // Validate all fields before proceeding
 
     setState(() => _loading = true);
     final name = _nameController.text.trim();
@@ -91,11 +99,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
     final user = await _auth.register(name, email, password);
     if (user != null) {
+      // Registration successful - navigate to login screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => LoginScreen()),
       );
     } else {
+      // Registration failed - email already exists
       final isArabic = Provider.of<LocaleProvider>(
         context,
         listen: false,
@@ -110,9 +120,10 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E27),
-      resizeToAvoidBottomInset: true,
+      backgroundColor: const Color(0xFF0A0E27), // Dark blue-black background
+      resizeToAvoidBottomInset: true, // Adjust when keyboard appears
       appBar: AppBar(
         title: Text(
           isArabic ? 'إنشاء حساب' : 'Sign Up',
@@ -121,10 +132,10 @@ class _SignupScreenState extends State<SignupScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.transparent, // Transparent to show gradient
+        elevation: 0, // Remove shadow
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // No back button on signup screen
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -159,11 +170,11 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              physics: const BouncingScrollPhysics(),
+              physics: const BouncingScrollPhysics(), // Smooth scrolling bounce effect
               child: Card(
-                color: const Color(0xFF2A3A4A),
+                color: const Color(0xFF2A3A4A), // Dark card background
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(20), // Rounded corners
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -172,6 +183,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Full name input field
                         TextFormField(
                           controller: _nameController,
                           style: const TextStyle(color: Colors.white),
@@ -186,7 +198,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderSide: const BorderSide(
-                                color: Color(0xFFF5B042),
+                                color: Color(0xFFF5B042), // Orange highlight on focus
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -196,10 +208,11 @@ class _SignupScreenState extends State<SignupScreen> {
                               : null,
                         ),
                         const SizedBox(height: 16),
+                        // Email input field
                         TextFormField(
                           controller: _emailController,
                           style: const TextStyle(color: Colors.white),
-                          keyboardType: TextInputType.emailAddress,
+                          keyboardType: TextInputType.emailAddress, // Email keyboard
                           decoration: InputDecoration(
                             labelText: isArabic ? 'البريد الإلكتروني' : 'Email',
                             labelStyle: const TextStyle(color: Colors.white70),
@@ -216,12 +229,13 @@ class _SignupScreenState extends State<SignupScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          validator: _validateEmail,
+                          validator: _validateEmail, // Custom email validation
                         ),
                         const SizedBox(height: 16),
+                        // Password input field (obscured)
                         TextFormField(
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: true, // Hide password input
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
                             labelText: isArabic ? 'كلمة المرور' : 'Password',
@@ -238,11 +252,12 @@ class _SignupScreenState extends State<SignupScreen> {
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            errorMaxLines: 2,
+                            errorMaxLines: 2, // Allow multi-line error messages
                           ),
-                          validator: _validatePassword,
+                          validator: _validatePassword, // Password strength validation
                         ),
                         const SizedBox(height: 16),
+                        // Confirm password input field
                         TextFormField(
                           controller: _confirmController,
                           obscureText: true,
@@ -265,16 +280,17 @@ class _SignupScreenState extends State<SignupScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          validator: _validateConfirm,
+                          validator: _validateConfirm, // Check if passwords match
                         ),
                         const SizedBox(height: 28),
+                        // Register button or loading indicator
                         _loading
                             ? const CircularProgressIndicator()
                             : ElevatedButton(
                                 onPressed: _register,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF5B042),
-                                  minimumSize: const Size(double.infinity, 50),
+                                  backgroundColor: const Color(0xFFF5B042), // Orange button
+                                  minimumSize: const Size(double.infinity, 50), // Full width
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -288,6 +304,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 ),
                               ),
                         const SizedBox(height: 16),
+                        // Link to login screen for existing users
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -307,7 +324,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               child: Text(
                                 isArabic ? 'تسجيل الدخول' : 'Login',
                                 style: const TextStyle(
-                                  color: Color(0xFFF5B042),
+                                  color: Color(0xFFF5B042), // Orange link
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

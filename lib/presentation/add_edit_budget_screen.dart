@@ -9,6 +9,7 @@ import '../../models/category_model.dart';
 import '../../models/transaction_model.dart';
 import 'widgets/custom_scaffold.dart';
 
+// Mapping for English to Arabic category name translations
 final Map<String, String> _enToAr = {
   'Food': 'طعام',
   'Transport': 'مواصلات',
@@ -17,6 +18,8 @@ final Map<String, String> _enToAr = {
   'Salary': 'مرتب',
   'Gift': 'هدية',
 };
+
+// Mapping for Arabic to English category name translations
 final Map<String, String> _arToEn = {
   'طعام': 'Food',
   'مواصلات': 'Transport',
@@ -26,6 +29,7 @@ final Map<String, String> _arToEn = {
   'هدية': 'Gift',
 };
 
+// Helper function to translate category names based on current language
 String _translate(String name, bool isArabic) {
   if (isArabic)
     return _enToAr[name] ?? name;
@@ -33,9 +37,10 @@ String _translate(String name, bool isArabic) {
     return _arToEn[name] ?? name;
 }
 
+// Screen for adding a new budget or editing an existing one
 class AddEditBudgetScreen extends StatefulWidget {
   final int userId;
-  final Budget? budget;
+  final Budget? budget; // If provided, we are editing; otherwise creating new
   const AddEditBudgetScreen({Key? key, required this.userId, this.budget})
     : super(key: key);
 
@@ -44,34 +49,40 @@ class AddEditBudgetScreen extends StatefulWidget {
 }
 
 class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
-  int? _categoryId;
-  List<Category> _categories = [];
-  int _threshold = 80;
-  bool _loading = false;
+  final _formKey = GlobalKey<FormState>(); // Form validation key
+  final _amountController = TextEditingController(); // Budget amount input
+  int? _categoryId; // Selected category ID
+  List<Category> _categories = []; // List of available categories
+  int _threshold = 80; // Alert threshold percentage (default 80%)
+  bool _loading = false; // Loading state for save operation
   final TransactionRepository _transactionRepo = TransactionRepository();
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadCategories(); // Fetch categories when screen initializes
     if (widget.budget != null) {
+      // If editing, populate fields with existing budget data
       _amountController.text = widget.budget!.budgetAmount.toString();
       _categoryId = widget.budget!.categoryId;
       _threshold = widget.budget!.alertThreshold;
     }
   }
 
+  // Load all categories from repository
   Future<void> _loadCategories() async {
     final cats = await CategoryRepository().getAllCategories();
     setState(() => _categories = cats);
   }
 
+  // Helper to get the start of current month
   DateTime _startOfMonth(DateTime now) => DateTime(now.year, now.month, 1);
+  
+  // Helper to get the end of current month
   DateTime _endOfMonth(DateTime now) =>
       DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
 
+  // Calculate total expenses (spent amount) for a specific category in a date range
   Future<double> _calculateExistingSpentAmount(
     int userId,
     int categoryId,
@@ -86,20 +97,24 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
     );
     double spent = 0.0;
     for (var tx in transactions) {
-      if (!tx.transactionType) {
+      if (!tx.transactionType) { // transactionType false = expense (not income)
         spent += tx.amount;
       }
     }
     return spent;
   }
 
+  // Save budget (create or update)
   Future<void> _save() async {
+    // Validate form and ensure category is selected
     if (!_formKey.currentState!.validate() || _categoryId == null) return;
     setState(() => _loading = true);
+    
     final now = DateTime.now();
     final startDate = _startOfMonth(now);
     final endDate = _endOfMonth(now);
 
+    // For editing, calculate already spent amount in current month
     double initialSpent;
     if (widget.budget == null) {
       initialSpent = 0.0;
@@ -112,6 +127,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       );
     }
 
+    // Create Budget object with form data
     final budget = Budget(
       budgetId: widget.budget?.budgetId,
       userId: widget.userId,
@@ -121,10 +137,11 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       endDate: endDate,
       alertThreshold: _threshold,
       spentAmount: initialSpent,
-      budgetStatus: widget.budget?.budgetStatus ?? 'On Track',
+      budgetStatus: widget.budget?.budgetStatus ?? 'On Track', // Default status
       createdAt: widget.budget?.createdAt ?? now,
     );
 
+    // Update budget status based on spent amount vs limit and threshold
     if (budget.spentAmount >= budget.budgetAmount) {
       budget.budgetStatus = 'Exceeded';
     } else if (budget.spentAmount >=
@@ -134,17 +151,19 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
       budget.budgetStatus = 'On Track';
     }
 
+    // Call appropriate service method (create or update)
     if (widget.budget == null) {
       await BudgetService().createBudget(budget);
     } else {
       await BudgetService().updateBudget(budget);
     }
-    Navigator.pop(context, true);
+    Navigator.pop(context, true); // Return true to indicate success
   }
 
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
+    // Dynamic title based on mode (add/edit) and language
     final title = isArabic
         ? (widget.budget == null ? 'إضافة ميزانية' : 'تعديل ميزانية')
         : (widget.budget == null ? 'Create Budget' : 'Edit Budget');
@@ -168,6 +187,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Dropdown for category selection
                   DropdownButtonFormField<int>(
                     value: _categoryId,
                     dropdownColor: const Color(0xFF2A3A4A),
@@ -197,6 +217,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
                         v != null ? null : (isArabic ? 'مطلوب' : 'Required'),
                   ),
                   const SizedBox(height: 12),
+                  // Text field for budget amount
                   TextFormField(
                     controller: _amountController,
                     keyboardType: TextInputType.number,
@@ -218,6 +239,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
                         : (isArabic ? 'رقم غير صالح' : 'Number required'),
                   ),
                   const SizedBox(height: 12),
+                  // Slider for setting alert threshold percentage
                   Slider(
                     value: _threshold.toDouble(),
                     min: 50,
@@ -233,6 +255,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
                     style: const TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 24),
+                  // Submit button or loading indicator
                   _loading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(

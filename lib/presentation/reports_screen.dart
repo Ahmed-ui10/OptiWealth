@@ -7,6 +7,7 @@ import '../../currency_provider.dart';
 import '../../models/financial_report_model.dart';
 import 'widgets/custom_scaffold.dart';
 
+// English to Arabic translation mapping for categories and payment methods
 const Map<String, String> _enToAr = {
   'Food': 'طعام',
   'Transport': 'مواصلات',
@@ -19,6 +20,7 @@ const Map<String, String> _enToAr = {
   'Bank Transfer': 'تحويل بنكي',
 };
 
+// Arabic to English translation mapping for categories and payment methods
 const Map<String, String> _arToEn = {
   'طعام': 'Food',
   'مواصلات': 'Transport',
@@ -31,6 +33,7 @@ const Map<String, String> _arToEn = {
   'تحويل بنكي': 'Bank Transfer',
 };
 
+// Helper function to translate strings based on current language
 String _translate(String name, bool isArabic) {
   if (isArabic)
     return _enToAr[name] ?? name;
@@ -38,6 +41,7 @@ String _translate(String name, bool isArabic) {
     return _arToEn[name] ?? name;
 }
 
+// Screen for displaying financial reports with charts (pie chart, bar chart, payment method table)
 class ReportsScreen extends StatefulWidget {
   final int userId;
   const ReportsScreen({Key? key, required this.userId}) : super(key: key);
@@ -48,26 +52,27 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   final ReportService _service = ReportService();
-  FinancialReport? _report;
-  bool _loading = true;
+  FinancialReport? _report; // Financial report data
+  bool _loading = true; // Loading state for data fetch
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _load(); // Load report when screen initializes
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _load();
+    _load(); // Reload when dependencies change (e.g., locale/currency)
   }
 
+  // Load financial report for current month
   Future<void> _load() async {
     setState(() => _loading = true);
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final end = DateTime(now.year, now.month + 1, 0);
+    final start = DateTime(now.year, now.month, 1); // First day of current month
+    final end = DateTime(now.year, now.month + 1, 0); // Last day of current month
     try {
       final report = await _service.generateReport(widget.userId, start, end);
       setState(() {
@@ -79,13 +84,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  // Format large numbers with suffixes (K, M, B) for chart axes
   String _formatNumber(double value) {
     if (value >= 1000000000) {
-      return '${(value / 1000000000).toStringAsFixed(1)}B';
+      return '${(value / 1000000000).toStringAsFixed(1)}B'; // Billions
     } else if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M';
+      return '${(value / 1000000).toStringAsFixed(1)}M'; // Millions
     } else if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}k';
+      return '${(value / 1000).toStringAsFixed(1)}k'; // Thousands
     } else {
       return value.toInt().toString();
     }
@@ -95,6 +101,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
     final currency = Provider.of<CurrencyProvider>(context);
+    
     return CustomScaffold(
       userId: widget.userId,
       title: isArabic ? 'التقارير المالية' : 'Financial Reports',
@@ -112,18 +119,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: _load,
+              onRefresh: _load, // Pull-to-refresh functionality
               color: const Color(0xFFF5B042),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
                     if (_report!.categoryTotals.isNotEmpty)
-                      _buildPieChartSection(isArabic),
+                      _buildPieChartSection(isArabic), // Show pie chart only if data exists
                     const SizedBox(height: 40),
-                    _buildIncomeExpenseBarChart(isArabic),
+                    _buildIncomeExpenseBarChart(isArabic), // Bar chart for income vs expense
                     const SizedBox(height: 40),
-                    _buildPaymentMethodTable(isArabic, currency),
+                    _buildPaymentMethodTable(isArabic, currency), // Table for payment method breakdown
                   ],
                 ),
               ),
@@ -131,7 +138,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  // Build pie chart showing expenses by category
   Widget _buildPieChartSection(bool isArabic) {
+    // Translate category names for display
     final Map<String, double> translatedTotals = {};
     for (var entry in _report!.categoryTotals.entries) {
       final translatedName = _translate(entry.key, isArabic);
@@ -163,11 +172,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     color: Colors.white,
                   ),
                   color: Colors
-                      .primaries[e.key.hashCode % Colors.primaries.length],
+                      .primaries[e.key.hashCode % Colors.primaries.length], // Dynamic color based on category name hash
                 );
               }).toList(),
-              centerSpaceRadius: 20,
-              sectionsSpace: 2,
+              centerSpaceRadius: 20, // Donut hole effect
+              sectionsSpace: 2, // Gap between pie slices
             ),
           ),
         ),
@@ -175,6 +184,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  // Build bar chart comparing total income vs total expense
   Widget _buildIncomeExpenseBarChart(bool isArabic) {
     final income = _report!.incomeVsExpenseData['income'] ?? 0.0;
     final expense = _report!.incomeVsExpenseData['expense'] ?? 0.0;
@@ -195,6 +205,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           child: BarChart(
             BarChartData(
               barGroups: [
+                // Income bar (green)
                 BarChartGroupData(
                   x: 0,
                   barRods: [
@@ -206,6 +217,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ],
                 ),
+                // Expense bar (red)
                 BarChartGroupData(
                   x: 1,
                   barRods: [
@@ -242,7 +254,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     showTitles: true,
                     reservedSize: 50,
                     getTitlesWidget: (value, _) => Text(
-                      _formatNumber(value),
+                      _formatNumber(value), // Formatted with K/M/B suffixes
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -260,13 +272,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
               borderData: FlBorderData(show: false),
               gridData: FlGridData(
                 show: true,
-                drawHorizontalLine: maxValue > 0, // only draw if maxValue > 0
+                drawHorizontalLine: maxValue > 0, // Only draw grid if there's data
                 drawVerticalLine: false,
-                horizontalInterval: maxValue > 0 ? maxValue / 5 : 1,
+                horizontalInterval: maxValue > 0 ? maxValue / 5 : 1, // Divide into 5 segments
                 getDrawingHorizontalLine: (value) =>
                     FlLine(color: Colors.white24, strokeWidth: 1),
               ),
-              barTouchData: BarTouchData(enabled: false),
+              barTouchData: BarTouchData(enabled: false), // Disable touch interactions
             ),
           ),
         ),
@@ -274,12 +286,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  // Build table showing income and expense breakdown by payment method
   Widget _buildPaymentMethodTable(bool isArabic, CurrencyProvider currency) {
     final incomeMap = _report!.incomeByMethod;
     final expenseMap = _report!.expenseByMethod;
     final allMethods = {...incomeMap.keys, ...expenseMap.keys}.toList();
-    allMethods.sort();
-    if (allMethods.isEmpty) return Container();
+    allMethods.sort(); // Sort methods alphabetically
+    
+    if (allMethods.isEmpty) return Container(); // Return empty if no data
+    
+    // Calculate totals
     double totalIncome = 0;
     double totalExpense = 0;
     for (var method in allMethods) {
@@ -287,6 +303,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       totalExpense += expenseMap[method] ?? 0;
     }
     final netTotal = totalIncome - totalExpense;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -302,7 +319,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         const SizedBox(height: 16),
         Card(
-          color: const Color(0xFF2A3A4A),
+          color: const Color(0xFF2A3A4A), // Dark card background
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -310,6 +327,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
+                // Table header row
                 Row(
                   children: [
                     Expanded(
@@ -358,6 +376,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ],
                 ),
                 const Divider(color: Colors.white24, height: 24),
+                // Data rows for each payment method
                 ...allMethods.map((method) {
                   final inc = incomeMap[method] ?? 0;
                   final exp = expenseMap[method] ?? 0;
@@ -369,7 +388,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         Expanded(
                           flex: 2,
                           child: Text(
-                            _translate(method, isArabic),
+                            _translate(method, isArabic), // Translated method name
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),
@@ -394,7 +413,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           child: Text(
                             currency.format(net, isArabic),
                             style: TextStyle(
-                              color: net >= 0 ? Colors.green : Colors.red,
+                              color: net >= 0 ? Colors.green : Colors.red, // Green for positive net, red for negative
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -404,6 +423,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   );
                 }).toList(),
                 const Divider(color: Colors.white24, height: 24),
+                // Total row
                 Row(
                   children: [
                     Expanded(

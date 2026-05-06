@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import 'widgets/custom_scaffold.dart';
 import 'login_screen.dart';
 
+// Screen for viewing/editing user profile, settings, currency, and language preferences
 class ProfileSettingsScreen extends StatefulWidget {
   final int userId;
   const ProfileSettingsScreen({Key? key, required this.userId})
@@ -20,19 +21,22 @@ class ProfileSettingsScreen extends StatefulWidget {
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final UserRepository _userRepo = UserRepository();
   final AuthService _auth = AuthService();
-  User? _user;
-  bool _loading = true;
-  final TextEditingController _rateController = TextEditingController();
+  User? _user; // Current user object
+  bool _loading = true; // Loading state for data fetch
+  final TextEditingController _rateController = TextEditingController(); // Exchange rate input
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _loadUser(); // Load user data when screen initializes
   }
 
+  // Load user data from repository
   Future<void> _loadUser() async {
     setState(() => _loading = true);
     final user = await _userRepo.getUserById(widget.userId);
+    
+    // Handle missing user (session expired)
     if (user == null) {
       if (mounted) {
         final isArabic = Provider.of<LocaleProvider>(
@@ -56,7 +60,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               TextButton(
                 onPressed: () async {
                   Navigator.pop(ctx);
-                  await _auth.clearSavedUserId();
+                  await _auth.clearSavedUserId(); // Clear stored user ID
                   if (mounted)
                     Navigator.pushReplacement(
                       context,
@@ -74,13 +78,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       }
       return;
     }
+    
     setState(() {
       _user = user;
       _loading = false;
     });
-    _rateController.clear();
+    _rateController.clear(); // Clear exchange rate field on load
   }
 
+  // Update user's language preference
   Future<void> _updateLanguage(String newLang) async {
     if (_user != null) {
       _user!.language = newLang;
@@ -89,13 +95,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         context,
         listen: false,
       );
-      await localeProvider.setLocale(Locale(newLang));
-      await _loadUser();
+      await localeProvider.setLocale(Locale(newLang)); // Apply new locale
+      await _loadUser(); // Reload user data
     }
   }
 
+  // Log out user and navigate to login screen
   Future<void> _logout() async {
-    await _auth.logout();
+    await _auth.logout(); // Clear authentication session
     if (mounted)
       Navigator.pushReplacement(
         context,
@@ -108,13 +115,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
     final currencyProvider = Provider.of<CurrencyProvider>(context);
 
+    // Show loading indicator while fetching user data
     if (_loading) {
       return Scaffold(
         backgroundColor: const Color(0xFF0A0E27),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    if (_user == null) return const SizedBox.shrink();
+    if (_user == null) return const SizedBox.shrink(); // Fallback if no user
 
     return CustomScaffold(
       userId: widget.userId,
@@ -124,15 +132,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Card(
-          color: const Color(0xFF2A3A4A),
+          color: const Color(0xFF2A3A4A), // Dark card background
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20), // Rounded corners
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Display user's full name (read-only)
                 ListTile(
                   title: Text(
                     isArabic ? 'الاسم' : 'Name',
@@ -144,6 +153,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                 ),
                 const Divider(color: Colors.white24),
+                // Display user's email (read-only)
                 ListTile(
                   title: Text(
                     isArabic ? 'البريد الإلكتروني' : 'Email',
@@ -155,7 +165,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                 ),
                 const Divider(color: Colors.white24),
-                // Currency selection
+                // Currency selection dropdown
                 ListTile(
                   title: Text(
                     isArabic ? 'العملة' : 'Currency',
@@ -178,14 +188,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     onChanged: (v) async {
                       if (v != null) {
                         currencyProvider.setTargetCurrency(v);
-                        _user!.currency = v;
+                        _user!.currency = v; // Save currency preference to user
                         await _userRepo.updateUser(_user!);
-                        _rateController.clear(); 
+                        _rateController.clear(); // Clear exchange rate field
                         setState(() {});
                       }
                     },
                   ),
                 ),
+                // Show exchange rate input field only if target currency is not EGP
                 if (currencyProvider.targetCurrency != 'EGP') ...[
                   const SizedBox(height: 8),
                   Padding(
@@ -202,7 +213,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _rateController,
-                            keyboardType: TextInputType.number,
+                            keyboardType: TextInputType.number, // Numeric keyboard
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
                               hintText: isArabic ? 'مثال: 35' : 'e.g. 35',
@@ -214,7 +225,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFF5B042),
+                                  color: Color(0xFFF5B042), // Orange highlight
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -222,6 +233,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             onChanged: (value) {
                               final num = double.tryParse(value);
                               if (num != null && num > 0) {
+                                // Update exchange rate in provider when user types
                                 currencyProvider.setExchangeRateFromUserInput(
                                   currencyProvider.targetCurrency,
                                   num,
@@ -235,6 +247,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                 ],
                 const Divider(color: Colors.white24),
+                // Language selection dropdown
                 ListTile(
                   title: Text(
                     isArabic ? 'اللغة' : 'Language',
@@ -259,14 +272,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         ),
                       ),
                     ],
-                    onChanged: (v) => _updateLanguage(v!),
+                    onChanged: (v) => _updateLanguage(v!), // Update language when changed
                   ),
                 ),
                 const SizedBox(height: 30),
+                // Logout button (red)
                 ElevatedButton(
                   onPressed: _logout,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: Colors.red, // Red button for logout
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

@@ -9,15 +9,24 @@ import '../reports_screen.dart';
 import '../notifications_screen.dart';
 import '../profile_settings_screen.dart';
 
+// Custom scaffold widget with gradient background and responsive drawer (RTL/LTR support)
 class CustomScaffold extends StatelessWidget {
+  // Main content body of the screen
   final Widget body;
+  // Title text shown in the AppBar
   final String title;
+  // Current user ID passed to child screens
   final int userId;
+  // Whether to show a back button in the AppBar
   final bool showBackButton;
+  // Whether to completely hide the drawer menu
   final bool hideMenu;
+  // Optional floating action button
   final Widget? floatingActionButton;
+  // Position of the floating action button
   final FloatingActionButtonLocation? floatingActionButtonLocation;
 
+  // Constructor with default values for optional parameters
   const CustomScaffold({
     Key? key,
     required this.body,
@@ -31,9 +40,11 @@ class CustomScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if Arabic language is active via LocaleProvider
     final isArabic = Provider.of<LocaleProvider>(context).isArabic;
 
     return Scaffold(
+      // Base background color (visible behind gradients)
       backgroundColor: const Color(0xFF0A0E27),
       appBar: AppBar(
         title: Text(
@@ -43,11 +54,11 @@ class CustomScaffold extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: _buildLeading(context, isArabic),
-        actions: _buildActions(context, isArabic),
+        backgroundColor: Colors.transparent, // Transparent to show gradient
+        elevation: 0, // Remove shadow
+        centerTitle: true, // Center the title horizontally
+        leading: _buildLeading(context, isArabic), // Menu or back button based on direction
+        actions: _buildActions(context, isArabic), // Additional actions (back button for RTL)
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -64,6 +75,7 @@ class CustomScaffold extends StatelessWidget {
           ),
         ),
       ),
+      // Drawer appears on the left for LTR (English), on the right for RTL (Arabic)
       drawer: (!isArabic && !hideMenu) ? _buildDrawer(context, isArabic) : null,
       endDrawer: (isArabic && !hideMenu)
           ? _buildDrawer(context, isArabic)
@@ -89,6 +101,7 @@ class CustomScaffold extends StatelessWidget {
     );
   }
 
+  // Builds the leading widget (left side of AppBar) based on language and flags
   Widget? _buildLeading(BuildContext context, bool isArabic) {
     if (!isArabic) {
       if (showBackButton) {
@@ -109,6 +122,7 @@ class CustomScaffold extends StatelessWidget {
     return null;
   }
 
+  // Builds the actions list (right side of AppBar) used for back or menu in RTL mode
   List<Widget> _buildActions(BuildContext context, bool isArabic) {
     if (isArabic) {
       if (showBackButton) {
@@ -133,6 +147,7 @@ class CustomScaffold extends StatelessWidget {
     return [];
   }
 
+  // Builds the drawer menu with all navigation items
   Widget _buildDrawer(BuildContext context, bool isArabic) {
     return Drawer(
       backgroundColor: const Color(0xFF000793),
@@ -157,6 +172,7 @@ class CustomScaffold extends StatelessWidget {
               ),
             ),
           ),
+          // Drawer items: Dashboard, Transactions, Budgets, Goals, Reports, Notifications, Profile
           _buildDrawerItem(
             context,
             Icons.home,
@@ -204,6 +220,7 @@ class CustomScaffold extends StatelessWidget {
     );
   }
 
+  // Builds a single drawer item with icon, title, and destination screen
   Widget _buildDrawerItem(
     BuildContext context,
     IconData icon,
@@ -211,10 +228,10 @@ class CustomScaffold extends StatelessWidget {
     Widget screen,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFF5B042)),
+      leading: Icon(icon, color: const Color(0xFFF5B042)), // Custom orange color for icons
       title: Text(title, style: const TextStyle(color: Colors.white70)),
       onTap: () {
-        Navigator.pop(context);
+        Navigator.pop(context); // Close drawer before navigating
         Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
       },
     );

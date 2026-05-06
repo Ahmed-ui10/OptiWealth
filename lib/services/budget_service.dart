@@ -3,6 +3,7 @@ import '../models/notification_model.dart';
 import '../repositories/budget_repository.dart';
 import 'notification_service.dart';
 
+// English to Arabic translation mapping for budget categories
 const Map<String, String> _enToAr = {
   'Food': 'طعام',
   'Transport': 'مواصلات',
@@ -12,6 +13,7 @@ const Map<String, String> _enToAr = {
   'Gift': 'هدية',
 };
 
+// Arabic to English translation mapping for budget categories
 const Map<String, String> _arToEn = {
   'طعام': 'Food',
   'مواصلات': 'Transport',
@@ -21,6 +23,7 @@ const Map<String, String> _arToEn = {
   'هدية': 'Gift',
 };
 
+// Helper function to translate category names based on language
 String _translateCategory(String name, bool isArabic) {
   if (isArabic) {
     return _enToAr[name] ?? name;
@@ -29,44 +32,57 @@ String _translateCategory(String name, bool isArabic) {
   }
 }
 
+// Service class for budget management including CRUD operations and expense tracking
 class BudgetService {
   final BudgetRepository _budgetRepo = BudgetRepository();
   final NotificationService _notificationService = NotificationService();
 
+  // Create a new budget
   Future<void> createBudget(Budget budget) async {
     await _budgetRepo.createBudget(budget);
   }
 
+  // Update an existing budget
   Future<void> updateBudget(Budget budget) async {
     await _budgetRepo.updateBudget(budget);
   }
 
+  // Delete a budget by ID (basic deletion without transfer logic)
   Future<void> deleteBudget(int? budgetId) async {
     if (budgetId == null || budgetId == 0) return;
     await _budgetRepo.deleteBudget(budgetId);
   }
 
+  // Delete a budget with transfer of remaining expenses to the next budget period
   Future<void> deleteBudgetWithTransfer(int budgetId, int userId) async {
     final budgetToDelete = await _budgetRepo.getBudgetById(budgetId);
     if (budgetToDelete == null) return;
+    
     final allBudgets = await _budgetRepo.getBudgetsByUser(
       userId,
       activeOnly: false,
     );
+    
+    // Find budgets with same category and sort by start date
     final sameCategoryBudgets =
         allBudgets
             .where((b) => b.categoryId == budgetToDelete.categoryId)
             .toList()
           ..sort((a, b) => a.startDate.compareTo(b.startDate));
+            
     int index = sameCategoryBudgets.indexWhere((b) => b.budgetId == budgetId);
+    
+    // If there's a next budget, transfer the spent amount to it
     if (index != -1 && index + 1 < sameCategoryBudgets.length) {
       final nextBudget = sameCategoryBudgets[index + 1];
       nextBudget.addExpense(budgetToDelete.spentAmount);
       await _budgetRepo.updateBudget(nextBudget);
     }
+    
     await _budgetRepo.deleteBudget(budgetId);
   }
 
+  // Track expenses against budgets and send notifications when thresholds are reached
   Future<void> updateBudgetTracking(
     int userId,
     int categoryId,
@@ -83,6 +99,7 @@ class BudgetService {
     );
     final relevantBudgets = <Budget>[];
 
+    // Find budgets that overlap with the transaction date
     for (var b in allBudgets) {
       if (b.categoryId != categoryId) continue;
       if (b.createdAt.isAfter(transactionDate)) continue;
@@ -99,6 +116,7 @@ class BudgetService {
         transactionDate.day,
       );
 
+      // Check if transaction date falls within budget period
       if (txDate.isAfter(start.subtract(const Duration(days: 1))) &&
           txDate.isBefore(end.add(const Duration(days: 1)))) {
         relevantBudgets.add(b);
@@ -107,23 +125,29 @@ class BudgetService {
 
     if (relevantBudgets.isEmpty) return;
 
+    // Sort budgets chronologically
     relevantBudgets.sort((a, b) => a.startDate.compareTo(b.startDate));
     double remaining = amount;
     final notificationsToSend = <NotificationModel>[];
 
+    // Handle expense (positive amount)
     if (amount > 0) {
       for (int i = 0; i < relevantBudgets.length; i++) {
         final budget = relevantBudgets[i];
         if (remaining <= 0) break;
+        
         final availableSpace = budget.budgetAmount - budget.spentAmount;
-        if (availableSpace <= 0 && i < relevantBudgets.length - 1)
-          continue; 
+        // Skip this budget if full and there are more budgets
+        if (availableSpace <= 0 && i < relevantBudgets.length - 1) continue; 
+        
         final toAdd = remaining > availableSpace ? availableSpace : remaining;
         budget.addExpense(toAdd);
         await _budgetRepo.updateBudget(budget);
         remaining -= toAdd;
 
         final translatedCat = _translateCategory(categoryNameRaw, isArabic);
+        
+        // Send notification if budget is exceeded
         if (budget.isExceeded()) {
           notificationsToSend.add(
             NotificationModel(
@@ -136,7 +160,9 @@ class BudgetService {
               timestamp: DateTime.now(),
             ),
           );
-        } else if (budget.spentPercentage >= budget.alertThreshold / 100) {
+        } 
+        // Send warning notification if threshold is reached
+        else if (budget.spentPercentage >= budget.alertThreshold / 100) {
           final percent = (budget.spentPercentage * 100).toInt();
           notificationsToSend.add(
             NotificationModel(
@@ -151,8 +177,9 @@ class BudgetService {
           );
         }
       }
+      
+      // Send notification for amount spent beyond all budgets
       if (remaining > 0) {
-    
         final translatedCat = _translateCategory(categoryNameRaw, isArabic);
         notificationsToSend.add(
           NotificationModel(
@@ -166,9 +193,11 @@ class BudgetService {
           ),
         );
       }
-    } else {
+    } 
+    // Handle income (negative amount) - deduct from budgets in reverse chronological order
+    else {
       double toDeduct = -remaining;
-      final reversed = relevantBudgets.reversed.toList(); 
+      final reversed = relevantBudgets.reversed.toList(); // Most recent first
       for (int i = 0; i < reversed.length; i++) {
         if (toDeduct <= 0) break;
         final budget = reversed[i];
@@ -182,18 +211,20 @@ class BudgetService {
           deduction = toDeduct;
         }
         if (deduction.abs() > 0) {
-          budget.addExpense(-deduction);
+          budget.addExpense(-deduction); // Reduce spent amount
           await _budgetRepo.updateBudget(budget);
           toDeduct -= deduction;
         }
       }
     }
 
+    // Send all accumulated notifications
     for (var notif in notificationsToSend) {
       await _notificationService.notify(notif);
     }
   }
 
+  // Get all active budgets for a user (current date range)
   Future<List<Budget>> getActiveBudgets(int userId) async {
     return await _budgetRepo.getBudgetsByUser(userId, activeOnly: true);
   }

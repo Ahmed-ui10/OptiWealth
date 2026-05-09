@@ -24,7 +24,7 @@ const Map<String, String> _enToAr = {
 const Map<String, String> _arToEn = {
   'طعام': 'Food',
   'مواصلات': 'Transport',
-  'بواتير': 'Bills',
+  'فواتير': 'Bills',
   'ترفيه': 'Entertainment',
   'مرتب': 'Salary',
   'هدية': 'Gift',
